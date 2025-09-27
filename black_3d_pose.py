@@ -79,6 +79,14 @@ def main():
 
     # --- Pygame & OpenGL Setup ---
     pygame.init()
+    # --- THE FIX ---
+    # Set OpenGL version attributes BEFORE creating the display.
+    # X11 forwarding often only supports older, more basic OpenGL contexts.
+    # By explicitly requesting a 2.1 compatibility profile, we increase our chances of success.
+    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 2)
+    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 1)
+    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_COMPATIBILITY)
+
     pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), DOUBLEBUF | OPENGL)
     pygame.display.set_caption("3D Spooky Pose")
     setup_projection()
@@ -120,4 +128,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
