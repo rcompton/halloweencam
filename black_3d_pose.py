@@ -6,7 +6,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
 import math
-from pywavefront import Wavefront
+import trimesh # Use trimesh for modern 3D model loading
 
 # --- Configuration ---
 WINDOW_WIDTH = 1920
@@ -16,7 +16,7 @@ CAMERA_INDEX = 0
 FRAME_WIDTH = 1920
 FRAME_HEIGHT = 1080
 FRAME_RATE = 60
-MODEL_FILE = 'skeleton.obj' # The name of your 3D model file
+MODEL_FILE = 'skeleton.glb' # CHANGED: Now expects a .glb or .gltf file
 
 # --- MediaPipe Setup ---
 mp_pose = mp.solutions.pose
@@ -42,12 +42,30 @@ def setup_opengl():
     glEnable(GL_DEPTH_TEST)
     glTranslatef(0.0, -1.2, -5.0) # Move camera back and down
 
+def draw_mesh(mesh):
+    """Renders a trimesh object using efficient vertex arrays."""
+    glEnableClientState(GL_VERTEX_ARRAY)
+    # Check if the model has vertex normals for lighting
+    if hasattr(mesh.visual, 'vertex_normals'):
+        glEnableClientState(GL_NORMAL_ARRAY)
+        glNormalPointer(GL_FLOAT, 0, mesh.visual.vertex_normals)
+    
+    glVertexPointer(3, GL_FLOAT, 0, mesh.vertices)
+    glDrawElements(GL_TRIANGLES, len(mesh.faces.flatten()), GL_UNSIGNED_INT, mesh.faces.flatten())
+    
+    glDisableClientState(GL_VERTEX_ARRAY)
+    if hasattr(mesh.visual, 'vertex_normals'):
+        glDisableClientState(GL_NORMAL_ARRAY)
+
+
 def main():
-    # --- Load 3D Model ---
+    # --- Load 3D Model using Trimesh ---
     try:
-        scene = Wavefront(MODEL_FILE, collect_faces=True)
-    except FileNotFoundError:
-        print(f"ERROR: Model file not found! Make sure '{MODEL_FILE}' is in the same directory.")
+        # force='mesh' combines all geometries into a single mesh
+        mesh = trimesh.load(MODEL_FILE, force='mesh')
+    except Exception as e:
+        print(f"ERROR: Could not load model file '{MODEL_FILE}'. Make sure it's in the same directory.")
+        print(f"Trimesh error: {e}")
         return
 
     # --- OpenCV Setup ---
@@ -107,13 +125,12 @@ def main():
                 glPushMatrix()
                 # --- Apply Transformations ---
                 # 1. Translate the model to the person's torso center
-                # We negate Y and Z to match OpenGL's coordinate system
                 glTranslatef(center_x, -center_y, -center_z)
                 # 2. Rotate the model to match the shoulder tilt
                 glRotatef(angle, 0, 0, 1)
-                
+
                 # --- Render the Model ---
-                scene.draw()
+                draw_mesh(mesh)
                 glPopMatrix()
 
             pygame.display.flip()
@@ -123,3 +140,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
