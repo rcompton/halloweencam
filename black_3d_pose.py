@@ -75,7 +75,7 @@ def main():
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-    cap.set(cv_2.CAP_PROP_FPS, FRAME_RATE)
+    cap.set(cv2.CAP_PROP_FPS, FRAME_RATE)
 
     # --- Pygame & OpenGL Setup ---
     pygame.init()
@@ -120,4 +120,4 @@ def main():
 
 if __name__ == "__main__":
     main()
- 
+
