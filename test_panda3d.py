@@ -1,3 +1,4 @@
+import math
 import random
 from direct.showbase.ShowBase import ShowBase
 from direct.actor.Actor import Actor
@@ -14,7 +15,7 @@ class MyApp(ShowBase):
         self.actor = Actor("CesiumMan.glb")  # Replace with your model file
         # self.actor = Actor("models/panda-model", {"walk": "models/panda-walk"})
         self.actor.reparentTo(self.render)
-        self.actor.setScale(0.9)
+        self.actor.setScale(1.9)
         self.actor.setPos(0, 0, 0)
 
         # --- IMPORTANT: Find and Print Bone Names ---
@@ -49,53 +50,56 @@ class MyApp(ShowBase):
         # List of bone names you want to animate.
         # REPLACE these with actual names from the printed list above!
         self.bones_to_animate = [
-            "Skeleton_torso_joint_1",
-            "Skeleton_torso_joint_2",
-            "torso_joint_3",
-            "Skeleton_neck_joint_1",
-            "Skeleton_neck_joint_2",
+            #"Skeleton_torso_joint_1",
+            #"Skeleton_torso_joint_2",
+            #"torso_joint_3",
+            #"Skeleton_neck_joint_1",
+            #"Skeleton_neck_joint_2",
             "Skeleton_arm_joint_L__4_",
-            "Skeleton_arm_joint_L__3_",
+            #"Skeleton_arm_joint_L__3_",
             "Skeleton_arm_joint_L__2_",
             "Skeleton_arm_joint_R",
-            "Skeleton_arm_joint_R__2_",
+            #"Skeleton_arm_joint_R__2_",
             "Skeleton_arm_joint_R__3_",
-            "leg_joint_L_1",
-            "leg_joint_L_2",
-            "leg_joint_L_3",
+            #"leg_joint_L_1",
+            #"leg_joint_L_2",
+            #"leg_joint_L_3",
             "leg_joint_L_5",
-            "leg_joint_R_1",
-            "leg_joint_R_2",
-            "leg_joint_R_3",
+            #"leg_joint_R_1",
+            #"leg_joint_R_2",
+            #"leg_joint_R_3",
             "leg_joint_R_5",
         ]
 
         # Add the animation task to the task manager
-        #self.taskMgr.add(self.animate_bones_task, "AnimateBonesTask")
+        self.taskMgr.add(self.animate_bones_task, "AnimateBonesTask")
 
     def animate_bones_task(self, task):
         """
-        This function is called every frame to update bone rotations.
+        This function is called every frame to update bone rotations smoothly.
         """
+        # --- Define animation properties ---
+        # How far the bones should rotate back and forth (in degrees)
+        amplitude = 15.0
+        # How fast the bones should oscillate
+        speed = 1.75
+
         for bone_name in self.bones_to_animate:
-            # Get a handle to control the specific joint
-            # The first argument (None) gets the default LOD
-            # The second argument ("modelRoot") is the part of the model
-            # The third is the name of the joint you want to control
             joint = self.actor.controlJoint(None, "modelRoot", bone_name)
 
             if joint:
-                # Generate random rotation values (Heading, Pitch, Roll)
-                h = random.uniform(-0.5, 1.5)
-                p = random.uniform(-0.5, 1.5)
-                r = random.uniform(-0.5, 1.5)
+                # Calculate new rotations using sine waves based on time
+                # We use slightly different speeds for H, P, and R for more
+                # complex-looking, less robotic motion.
+                h = math.sin(task.time * speed * 1.2) * amplitude
+                p = math.sin(task.time * speed * 1.5) * (amplitude * 0.5) # Pitch moves less
+                r = math.sin(task.time * speed * 0.9) * amplitude
 
-                # Apply the random rotation to the joint
+                # Apply the smooth rotation to the joint
                 joint.setHpr(h, p, r)
 
         # Tell the task manager to continue calling this task
         return task.cont
-
 
 app = MyApp()
 app.run()
