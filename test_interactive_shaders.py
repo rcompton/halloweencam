@@ -66,7 +66,7 @@ program = ctx.program(
         }
 
         void main() {
-            // --- SIMULATION #1: Background Fluid ---
+            // --- SIMULATION #1: Background Fluid (Black, Purple, Orange) ---
             float bg_zoom = 3.0;
             float bg_speed = 0.2;
             vec2 bg_uv1 = uv * bg_zoom + vec2(u_time * bg_speed, u_time * bg_speed * 0.5);
@@ -76,32 +76,35 @@ program = ctx.program(
             vec3 background_fluid_color = mix(vec3(0.0, 0.0, 0.0), vec3(0.3, 0.0, 0.4), smoothstep(0.0, 0.6, bg_val));
             background_fluid_color = mix(background_fluid_color, vec3(1.0, 0.5, 0.0), smoothstep(0.6, 1.0, bg_val));
 
-            // --- SIMULATION #2: Person (Ghost) Fluid ---
+            // --- SIMULATION #2: Person (Ghost) Fluid (Green, Black, Purple) ---
             float person_zoom = 5.0;
             float person_speed = 0.1;
             vec2 p_uv1 = uv * person_zoom - vec2(u_time * person_speed * 0.8, u_time * person_speed);
             vec2 p_uv2 = uv * (person_zoom * 1.5) + vec2(u_time * person_speed * 0.5, u_time * person_speed * 0.3);
             float p_distort = noise(p_uv2) * 2.0;
             float p_val = noise(p_uv1 + p_distort);
-            vec3 person_fluid_color = mix(vec3(0.1, 0.5, 0.1), vec3(0.7, 1.0, 0.5), p_val); // Dark green to bright green
+
+            // --- NEW Green/Black/Purple Palette for the person ---
+            vec3 green = vec3(0.1, 0.7, 0.2);
+            vec3 black = vec3(0.0, 0.0, 0.0);
+            vec3 purple = vec3(0.4, 0.0, 0.5);
+            vec3 person_fluid_color = mix(green, black, smoothstep(0.0, 0.5, p_val));
+            person_fluid_color = mix(person_fluid_color, purple, smoothstep(0.5, 1.0, p_val));
 
             // --- Blending ---
-            // Get the mask value (0.0 for background, 1.0 for person)
             float mask = texture(u_mask_texture, uv).r;
-
-            // Mix between the two fluid simulations based on the mask
             vec3 final_color = mix(background_fluid_color, person_fluid_color, mask);
             
             fragColor = vec4(final_color, 1.0);
         }
-    """,
+    """
 )
 
 # --- 3. Geometry and Texture Setup ---
-vertices = np.array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0], dtype="f4")
+vertices = np.array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0], dtype='f4')
 vbo = ctx.buffer(vertices)
-vao = ctx.simple_vertex_array(program, vbo, "in_vert")
-mask_texture = ctx.texture((WIDTH, HEIGHT), 1, dtype="f4")
+vao = ctx.simple_vertex_array(program, vbo, 'in_vert')
+mask_texture = ctx.texture((WIDTH, HEIGHT), 1, dtype='f4')
 start_time = time.time()
 
 # --- 4. Main Render Loop ---
@@ -114,13 +117,13 @@ while not glfw.window_should_close(window):
 
     frame = cv2.flip(frame, 1)
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
+    
     results = segmenter.process(rgb_frame)
     mask = results.segmentation_mask
     if mask is None:
         continue
-
-    mask = (mask > 0.5).astype("f4")
+        
+    mask = (mask > 0.5).astype('f4')
     mask_flipped = cv2.flip(mask, 0)
     mask_resized = cv2.resize(mask_flipped, (WIDTH, HEIGHT))
 
@@ -129,9 +132,9 @@ while not glfw.window_should_close(window):
 
     mask_texture.write(mask_resized.tobytes())
     mask_texture.use(location=0)
-    program["u_mask_texture"].value = 0
-    program["u_time"].value = time.time() - start_time
-
+    program['u_mask_texture'].value = 0
+    program['u_time'].value = time.time() - start_time
+    
     vao.render(moderngl.TRIANGLE_STRIP, vertices=4)
 
     glfw.swap_buffers(window)
