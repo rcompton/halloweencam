@@ -1,65 +1,64 @@
-# Import the necessary libraries
 import cv2
-import mediapipe as mp
 import numpy as np
+from ultralytics import YOLO
+import time # <-- 1. Import the time library
 
-# Initialize MediaPipe Selfie Segmentation
-mp_selfie_segmentation = mp.solutions.selfie_segmentation
-segmenter = mp_selfie_segmentation.SelfieSegmentation(model_selection=0)
+# Load the YOLOv8 segmentation model
+model = YOLO('yolov8n-seg.pt')
 
 # Initialize OpenCV to capture video from your webcam
 cap = cv2.VideoCapture(0)
+print("Starting YOLOv8 ghost feed. Press 'q' to quit.")
 
-print("Starting spooky camera feed. Press 'q' to quit.")
+# --- 2. Initialize FPS counter variables ---
+start_time = time.time()
+frame_count = 0
+fps_display = "FPS: 0"
 
-# --- (Optional) Set up for full-screen projection ---
-cv2.namedWindow('Ghost Effect', cv2.WND_PROP_FULLSCREEN)
-cv2.setWindowProperty('Ghost Effect', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-# Main loop to process video frames
 while cap.isOpened():
     success, frame = cap.read()
     if not success:
         continue
 
-    # Flip the frame horizontally for a more intuitive selfie-view
     frame = cv2.flip(frame, 1)
 
-    # Convert the BGR image to RGB for MediaPipe
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # --- YOLOv8 DETECTION AND MASKING ---
 
-    # Process the frame and get the segmentation mask
-    results = segmenter.process(rgb_frame)
-    mask = results.segmentation_mask
+    # Run the model on the frame
+    results = model(frame, classes=0, verbose=False)
 
-    # --- CREATING THE SPOOKY EFFECT ---
-
-    # 1. Create a condition from the mask
-    condition = mask > 0.5
-
-    # 2. Create a black background
+    # Create a black background to draw our ghosts on
     output_image = np.zeros(frame.shape, dtype=np.uint8)
+
+    # Check if any masks were found in the results
+    if results[0].masks is not None:
+        masks = results[0].masks.data.cpu().numpy()
+        combined_mask_low_res = np.any(masks, axis=0)
+
+        frame_h, frame_w, _ = frame.shape
+        final_mask = cv2.resize(combined_mask_low_res.astype(np.uint8), (frame_w, frame_h)).astype(bool)
+        
+        # --- CREATING THE SPOOKY EFFECT ---
+        ghost_color = (0, 150, 0)
+        output_image[final_mask] = ghost_color
+        output_image = cv2.GaussianBlur(output_image, (55, 55), 0)
+
+    # --- 3. FPS Calculation and Display ---
+    frame_count += 1
+    elapsed_time = time.time() - start_time
+    if elapsed_time > 1.0: # Update the FPS reading every second
+        fps = frame_count / elapsed_time
+        fps_display = f"FPS: {fps:.2f}"
+        # Reset the counter and timer
+        frame_count = 0
+        start_time = time.time()
     
-    # 3. Define a spooky color (a dim, ghostly green)
-    # Using lower values (e.g., 150 instead of 255) makes it look transparent.
-    ghost_color = (0, 150, 0) # BGR format for OpenCV
-
-    # 4. Apply the color to the silhouette
-    output_image[condition] = ghost_color
-
-    # 5. Add a blur to make the edges "wispy"
-    # The (55, 55) tuple is the kernel size. Larger numbers = more blur.
-    output_image = cv2.GaussianBlur(output_image, (55, 55), 0)
-
-
+    # Draw the FPS text on the output image
+    cv2.putText(output_image, fps_display, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    
     # --- DISPLAYING THE OUTPUT ---
+    cv2.imshow('YOLOv8 Ghost Effect', output_image)
 
-    # We don't need to see the original feed anymore, just the effect
-    # cv2.imshow('Original Feed', frame)
-    
-    cv2.imshow('Ghost Effect', output_image)
-
-    # Check for the 'q' key to quit the loop
     if cv2.waitKey(5) & 0xFF == ord('q'):
         break
 
@@ -67,4 +66,3 @@ while cap.isOpened():
 print("Closing application.")
 cap.release()
 cv2.destroyAllWindows()
-segmenter.close()
