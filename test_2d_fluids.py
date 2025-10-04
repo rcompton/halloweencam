@@ -1,5 +1,5 @@
 import phi.flow as phi
-from matplotlib import pyplot as plt # 👈 Import pyplot
+from matplotlib import pyplot as plt
 
 # 1. Define the computational domain as a dictionary
 domain = dict(x=64, y=64, bounds=phi.Box(x=100, y=100))
