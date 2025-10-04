@@ -4,9 +4,9 @@ from ultralytics import YOLO
 import time
 
 # --- Particle Simulation Constants ---
-NUM_PARTICLES = 25000
-GRAVITY = 0.01
-REPULSION_STRENGTH = 20.8
+NUM_PARTICLES = 35000
+GRAVITY = 0.001
+REPULSION_STRENGTH = 30.8
 
 # Load the YOLOv8 segmentation model
 model = YOLO('yolov8n-seg.pt')
@@ -52,9 +52,9 @@ while cap.isOpened():
 
         # --- 1. DRAW THE GHOST FIRST ---
         # This creates the blurred, green background silhouette
-        ghost_color = (0, 150, 0) # Dim green for the ghost
+        ghost_color = (100, 150, 100) # Dim green for the ghost
         output_image[final_mask] = ghost_color
-        output_image = cv2.GaussianBlur(output_image, (55, 55), 0)
+        #output_image = cv2.GaussianBlur(output_image, (55, 55), 0)
 
     # --- Run Particle Simulation Step ---
     particles_vel[:, 1] += GRAVITY
