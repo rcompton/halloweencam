@@ -38,7 +38,7 @@ program = ctx.program(
 
         uniform float u_time;
 
-        // 2D Noise function (a standard algorithm)
+        // 2D Noise function
         float noise(vec2 st) {
             vec2 i = floor(st);
             vec2 f = fract(st);
@@ -51,17 +51,15 @@ program = ctx.program(
         }
 
         void main() {
-            // Define two layers of noise moving at different speeds for a swirling effect
-            vec2 uv_layer1 = uv * 3.0 + vec2(u_time * 0.1, u_time * 0.05);
-            vec2 uv_layer2 = uv * 4.0 - vec2(u_time * 0.03, u_time * 0.08);
+            // --- FASTER MOVEMENT: Increased the time multipliers ---
+            vec2 uv_layer1 = uv * 3.0 + vec2(u_time * 0.6, u_time * 0.3);
+            vec2 uv_layer2 = uv * 4.0 - vec2(u_time * 0.16, u_time * 0.26);
 
-            // Use noise to distort the texture coordinates (domain warping)
-            float distortion = noise(uv_layer2) * 0.5;
+            // --- MORE SWIRLING: Increased the distortion effect ---
+            float distortion = noise(uv_layer2) * 1.9;
             
-            // Generate the final color based on the distorted coordinates
             float color_value = noise(uv_layer1 + distortion);
 
-            // Map the noise value to a color palette (blue to orange)
             vec3 color = mix(vec3(0.1, 0.4, 0.8), vec3(1.0, 0.7, 0.2), color_value);
             
             fragColor = vec4(color, 1.0);
@@ -74,21 +72,14 @@ vertices = np.array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0], dtype='f4')
 vbo = ctx.buffer(vertices)
 vao = ctx.simple_vertex_array(program, vbo, 'in_vert')
 
-# Get the starting time
 start_time = time.time()
 
 # --- 4. Main Render Loop ---
 print("Shader running. Close the window to quit.")
 while not glfw.window_should_close(window):
     ctx.clear(0.1, 0.1, 0.1)
-
-    # Pass the elapsed time to the shader
     program['u_time'].value = time.time() - start_time
-    
-    # Render the VAO
     vao.render(moderngl.TRIANGLE_STRIP, vertices=4)
-
-    # Swap buffers
     glfw.swap_buffers(window)
     glfw.poll_events()
 
