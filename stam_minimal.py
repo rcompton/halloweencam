@@ -10,11 +10,11 @@ import glfw, moderngl, numpy as np, time, math
 WIDTH, HEIGHT = 800, 600
 TARGET_FPS = 60
 DYE_DISSIPATION = 1.0  # stop decay so it doesn't fade out
-SUBSTEPS = 4  # 2–6 small moves per frame
-SPLAT_STRENGTH = 0.20  # how much dye to add per-frame
-SPLAT_RADIUS = 0.08  # UV units
+SUBSTEPS = 7  # 2–6 small moves per frame
+SPLAT_STRENGTH = 0.10  # how much dye to add per-frame
+SPLAT_RADIUS = 0.01  # UV units
 ORBIT_SOURCE = True  # False = fixed center source; True = slow orbit
-DYE_BLUR = True  # light post blur to reduce pixel noise
+DYE_BLUR = False  # light post blur to reduce pixel noise
 
 # ---------------- Shaders ----------------
 VS = """
