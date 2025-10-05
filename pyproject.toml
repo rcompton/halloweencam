@@ -1,0 +1,23 @@
+[project]
+name = "ghoulfluids"
+version = "0.1.0"
+description = "Edge-driven stable fluids with split camera view"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "moderngl>=5.9.0",
+  "glfw>=2.7.0",
+  "numpy>=1.24",
+  "opencv-python>=4.9",
+  "mediapipe>=0.10.14"
+]
+
+[project.scripts]
+ghoulfluids = "ghoulfluids.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
