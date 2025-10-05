@@ -147,6 +147,16 @@ def main(argv=None):
     seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
     ambient = AmbientController(cfg, seed=42)
 
+    # ---- palette cycle state ----
+    N_PALETTES = 6  # keep in sync with shader list above
+    palette_cycle_on = bool(cfg.palette_cycle)
+    curr_pal = int(cfg.palette_id) % N_PALETTES
+    next_pal = (curr_pal + 1) % N_PALETTES
+    dwell_t = 0.0
+    fade_t = 0.0
+    in_fade = False
+    sim.set_palette_blend(curr_pal, curr_pal, 0.0)
+
     running = True
     split_view = bool(args.split)
 
@@ -249,9 +259,40 @@ def main(argv=None):
                     have_mask = True
 
             if running:
-                # Ambient dye & velocity
+                # Ambient dye & velocity if nothing detected
                 if not have_mask and cfg.ambient_emitters > 0:
                     ambient.step(dt, sim)
+
+                # ---- palette cycling ----
+                if palette_cycle_on:
+                    if not in_fade:
+                        dwell_t += dt
+                        if dwell_t >= cfg.palette_dwell:
+                            in_fade = True
+                            fade_t = 0.0
+                            next_pal = (curr_pal + 1) % N_PALETTES
+                    else:
+                        fade_t += dt
+                        mix = min(1.0, fade_t / max(0.001, cfg.palette_fade))
+                        sim.set_palette_blend(curr_pal, next_pal, mix)
+                        if mix >= 1.0:
+                            # commit and start next dwell
+                            curr_pal = next_pal
+                            dwell_t = 0.0
+                            in_fade = False
+                            sim.set_palette_blend(curr_pal, curr_pal, 0.0)
+                else:
+                    # no auto-cycle; ensure stable state
+                    sim.set_palette_blend(
+                        curr_pal,
+                        curr_pal if not in_fade else next_pal,
+                        (
+                            0.0
+                            if not in_fade
+                            else min(1.0, fade_t / max(0.001, cfg.palette_fade))
+                        ),
+                    )
+
                 # Main step of the simulation
                 sim.step(dt, have_mask)
 

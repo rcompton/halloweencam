@@ -53,6 +53,11 @@ class FluidSim:
         self.prog_show = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SHOW)
         self.prog_cam = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SHOW_CAM)
 
+        # palette state (updated each frame by the app)
+        self.palette_a = self.cfg.palette_id
+        self.palette_b = self.cfg.palette_id
+        self.palette_mix = 0.0
+
         self.vbo = fullscreen_quad(ctx)
         self.vao_adv = ctx.simple_vertex_array(self.prog_adv, self.vbo, "in_vert")
         self.vao_splat = ctx.simple_vertex_array(self.prog_splat, self.vbo, "in_vert")
@@ -155,6 +160,12 @@ class FluidSim:
         self.mask_prev.write(self.last_mask_small.tobytes())
         self.mask_curr.write(mask_small.tobytes())
         self.last_mask_small = mask_small.copy()
+    
+    def set_palette_blend(self, a: int, b: int, mix: float):
+        self.palette_a = int(a)
+        self.palette_b = int(b)
+        self.palette_mix = max(0.0, min(1.0, float(mix)))
+
 
     def step(self, dt: float, have_mask: bool):
         sdt = dt / self.cfg.substeps
@@ -263,8 +274,12 @@ class FluidSim:
             self.ctx.viewport = (0, 0, self.cfg.width, self.cfg.height)
 
         self.dye_a.use(location=0)
-        self.prog_show["dye"].value = 0
-        self.prog_show["palette_on"].value = self.cfg.palette_on
+        self.prog_show['dye'].value = 0
+        self.prog_show['palette_on'].value = self.cfg.palette_on
+        self.prog_show['palette_id'].value = int(self.palette_a)
+        self.prog_show['palette_id2'].value = int(self.palette_b)
+        self.prog_show['palette_mix'].value = float(self.palette_mix)
         self.vao_show.render(moderngl.TRIANGLE_STRIP)
+
         # restore full viewport
         self.ctx.viewport = (0, 0, self.cfg.width, self.cfg.height)

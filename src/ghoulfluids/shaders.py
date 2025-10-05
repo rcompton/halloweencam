@@ -181,19 +181,55 @@ FS_SHOW = """
 in vec2 uv; out vec4 fragColor;
 uniform sampler2D dye;
 uniform int palette_on;
-vec3 palette(float t){
-    t = clamp(t,0.0,1.0);
-    if(t<0.5){ float k=t/0.5; return mix(vec3(0.0), vec3(1.0,0.5,0.0), k); }
-    float k=(t-0.5)/0.5; return mix(vec3(1.0,0.5,0.0), vec3(0.45,0.0,0.6), k);
+uniform int palette_id;   // current palette (0..N-1)
+uniform int palette_id2;  // next palette for crossfade
+uniform float palette_mix; // 0..1 crossfade amount
+
+// 3-stop gradient helper
+vec3 grad3(float t, vec3 a, vec3 b, vec3 c){
+    t = clamp(t, 0.0, 1.0);
+    if (t < 0.5) return mix(a, b, t*2.0);
+    return mix(b, c, (t-0.5)*2.0);
 }
+
+// ---- spooky palettes ----
+// 0: Pumpkin (black -> orange -> purple)
+vec3 pal_pumpkin(float t){ return grad3(t, vec3(0.0), vec3(1.0,0.5,0.0), vec3(0.45,0.0,0.6)); }
+// 1: Slime (black -> toxic green -> magenta)
+vec3 pal_slime(float t){ return grad3(t, vec3(0.0), vec3(0.0,0.78,0.20), vec3(0.9,0.0,0.9)); }
+// 2: Ember (deep red -> orange -> yellow)
+vec3 pal_ember(float t){ return grad3(t, vec3(0.15,0.0,0.0), vec3(1.0,0.35,0.0), vec3(1.0,0.82,0.2)); }
+// 3: Midnight (blue -> purple -> magenta)
+vec3 pal_midnight(float t){ return grad3(t, vec3(0.0,0.1,0.3), vec3(0.25,0.0,0.45), vec3(0.9,0.0,0.6)); }
+// 4: Ectoplasm (teal -> neon green -> white)
+vec3 pal_ecto(float t){  return grad3(t, vec3(0.0,0.30,0.30), vec3(0.16,0.85,0.34), vec3(0.8)); }
+// 5: Blood Moon (black -> crimson -> amber)
+vec3 pal_blood(float t){ return grad3(t, vec3(0.0), vec3(0.6,0.02,0.06), vec3(1.0,0.5,0.0)); }
+
+vec3 pick_palette(int id, float t){
+    if(id==0) return pal_pumpkin(t);
+    if(id==1) return pal_slime(t);
+    if(id==2) return pal_ember(t);
+    if(id==3) return pal_midnight(t);
+    if(id==4) return pal_ecto(t);
+    if(id==5) return pal_blood(t);
+    return pal_pumpkin(t);
+}
+
 void main(){
-    vec3 c = texture(dye, uv).rgb;
-    if(palette_on==0) fragColor = vec4(c,1.0);
-    else{
-        float l = dot(c, vec3(0.299,0.587,0.114));
-        l = 1.0 - exp(-2.3*l);
-        fragColor = vec4(palette(l),1.0);
+    vec3 dye_rgb = texture(dye, uv).rgb;
+    if (palette_on == 0){
+        fragColor = vec4(dye_rgb, 1.0);
+        return;
     }
+    // luminance → perceptual curve (same as before, just named)
+    float l = dot(dye_rgb, vec3(0.299, 0.587, 0.114));
+    l = 1.0 - exp(-2.3 * l);
+
+    vec3 a = pick_palette(palette_id, l);
+    vec3 b = pick_palette(palette_id2, l);
+    vec3 outc = mix(a, b, clamp(palette_mix, 0.0, 1.0));
+    fragColor = vec4(outc, 1.0);
 }
 """
 

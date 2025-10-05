@@ -42,3 +42,10 @@ class AppConfig:
     vortex_interval: float = 1.6  # seconds between kicks
     vortex_strength: float = 1.8  # tangential velocity strength
     vortex_radius: float = 0.050  # how far the dipole is from the center
+
+    # Palette defaults
+    palette_on: int = 1
+    palette_id: int = 4            # start palette (0..5)
+    palette_cycle: bool = True     # slow auto-cycle through palettes
+    palette_dwell: float = 15.0    # seconds to hold each palette
+    palette_fade: float = 5.0      # seconds to crossfade to the next
