@@ -1,5 +1,6 @@
 from ghoulfluids.config import AppConfig
 
+
 def test_defaults():
     cfg = AppConfig()
     assert cfg.width > 0 and cfg.height > 0
