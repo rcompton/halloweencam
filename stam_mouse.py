@@ -10,15 +10,15 @@ import glfw, moderngl, numpy as np, time, math
 
 # ------------- Config -------------
 WIDTH, HEIGHT = 1024, 576      # window
-SIM_SCALE = 0.9                # velocity/pressure grid size vs screen (0.5–1.0)
-SUBSTEPS = 5                   # small moves per frame (2–5)
-DT_CLAMP = 0.033               # clamp dt per frame
-JACOBI_ITERS = 50              # 20–60
-VEL_DISSIPATION = 0.995        # 0.995–1.0
-DYE_DISSIPATION = 0.994        # 0.99–1.0
-VORTICITY = 5.4                # 0 to disable; 1–4 pleasant
-MOUSE_RADIUS = 0.1            # UV
-MOUSE_VEL_SCALE = 1.0          # multiply mouse UV/sec -> injected velocity
+MOUSE_VEL_SCALE = 0.8
+MOUSE_RADIUS    = 0.01
+VORTICITY       = 3.0
+VEL_DISSIPATION = 0.9995
+DYE_DISSIPATION = 0.99
+SUBSTEPS        = 6
+JACOBI_ITERS    = 28
+SIM_SCALE       = 0.7
+DT_CLAMP       = 0.033
 PALETTE_ON = 1                 # 1 = orange→purple palette
 
 # ------------- Shaders -------------
