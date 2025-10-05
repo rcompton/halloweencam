@@ -5,7 +5,10 @@ from dataclasses import dataclass
 class AppConfig:
     width: int = 1024
     height: int = 576
+    render_scale: float = 0.6  # 60% of window size by default
+    dye_fp16: bool = True  # use half-float RGBA for dye
     sim_scale: float = 0.7
+    sim_max_dim: int = 1024 
     substeps: int = 6
     dt_clamp: float = 0.033
     jacobi_iters: int = 50

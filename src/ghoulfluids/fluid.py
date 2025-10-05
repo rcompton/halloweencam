@@ -27,7 +27,16 @@ class FluidSim:
 
         self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
         self.sim_h = max(32, int(cfg.height * cfg.sim_scale))
+
+        max_dim = max(self.sim_w, self.sim_h)
+        if max_dim > cfg.sim_max_dim:
+            s = cfg.sim_max_dim / float(max_dim)
+            self.sim_w = max(32, int(self.sim_w * s))
+            self.sim_h = max(32, int(self.sim_h * s))
         self.texel = (1.0 / self.sim_w, 1.0 / self.sim_h)
+
+        self.dye_w = max(32, int(cfg.width * cfg.render_scale))
+        self.dye_h = max(32, int(cfg.height * cfg.render_scale))
 
         # programs / VAOs
         self.prog_adv = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_ADVECT)
@@ -60,8 +69,9 @@ class FluidSim:
         # textures / FBOs
         self.vel_a = make_tex(ctx, (self.sim_w, self.sim_h), 2)
         self.vel_b = make_tex(ctx, (self.sim_w, self.sim_h), 2)
-        self.dye_a = make_tex(ctx, (cfg.width, cfg.height), 4)
-        self.dye_b = make_tex(ctx, (cfg.width, cfg.height), 4)
+        dye_dtype = "f2" if self.cfg.dye_fp16 else "f4"
+        self.dye_a = make_tex(ctx, (self.dye_w, self.dye_h), 4, dtype=dye_dtype)
+        self.dye_b = make_tex(ctx, (self.dye_w, self.dye_h), 4, dtype=dye_dtype)
         self.prs = make_tex(ctx, (self.sim_w, self.sim_h), 1)
         self.prs_b = make_tex(ctx, (self.sim_w, self.sim_h), 1)
         self.div = make_tex(ctx, (self.sim_w, self.sim_h), 1)
@@ -111,7 +121,7 @@ class FluidSim:
         self.prog_maskF["amp_normal"].value = self.cfg.edge_normal_amp
         self.prog_maskF["amp_tangent"].value = self.cfg.edge_tangent_amp
         self.prog_maskF["use_temporal"].value = 1 if self.cfg.edge_use_temporal else 0
-        self.prog_maskD["texel"].value = (1.0 / self.cfg.width, 1.0 / self.cfg.height)
+        self.prog_maskD["texel"].value = (1.0 / self.dye_w, 1.0 / self.dye_h)
         self.prog_maskD["edge_thresh"].value = self.cfg.edge_thresh
         self.prog_maskD["edge_color"].value = (1.0, 0.45, 0.1)
 

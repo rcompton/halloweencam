@@ -27,6 +27,18 @@ def main(argv=None):
     )
     p.add_argument("--width", type=int, help="Window width (default from config.py)")
     p.add_argument("--height", type=int, help="Window height (default from config.py)")
+    p.add_argument(
+        "--render-scale",
+        type=float,
+        help="Dye render scale (0.3–1.0). Default from config.",
+    )
+    p.add_argument(
+        "--dye-f32",
+        action="store_true",
+        help="Use 32-bit float for dye (default is FP16).",
+    )
+    p.add_argument("--sim-max", type=int, help="Cap for max(sim_w, sim_h); default from config.")
+
     p.add_argument("--camera", type=int, help="Camera index (default from config.py)")
 
     # edge force params
@@ -50,6 +62,12 @@ def main(argv=None):
         cfg.width = args.width
     if args.height:
         cfg.height = args.height
+    if args.render_scale is not None:
+        cfg.render_scale = max(0.3, min(1.0, args.render_scale))
+    if args.dye_f32:
+        cfg.dye_fp16 = False
+    if args.sim_max is not None: cfg.sim_max_dim = max(128, args.sim_max)
+
     if args.camera is not None:
         cfg.camera_index = args.camera
 
