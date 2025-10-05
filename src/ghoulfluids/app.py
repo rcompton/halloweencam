@@ -20,6 +20,11 @@ def main(argv=None):
     )
     p.set_defaults(split=False)
     # window / camera
+    p.add_argument(
+        "--fullscreen",
+        action="store_true",
+        help="Open in fullscreen on the primary monitor.",
+    )
     p.add_argument("--width", type=int, help="Window width (default from config.py)")
     p.add_argument("--height", type=int, help="Window height (default from config.py)")
     p.add_argument("--camera", type=int, help="Camera index (default from config.py)")
@@ -84,9 +89,15 @@ def main(argv=None):
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
     glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
-    win = glfw.create_window(
-        cfg.width, cfg.height, "Ghoul Fluids (Split View)", None, None
-    )
+
+    monitor = None
+    if args.fullscreen:
+        monitor = glfw.get_primary_monitor()
+        mode = glfw.get_video_mode(monitor)
+        # Use the monitor's native pixel size
+        cfg.width, cfg.height = mode.size.width, mode.size.height
+
+    win = glfw.create_window(cfg.width, cfg.height, "Ghoul Fluids", monitor, None)
     glfw.make_context_current(win)
     ctx = moderngl.create_context()
 
