@@ -167,6 +167,7 @@ def main(argv=None):
     )
     try:
         while not glfw.window_should_close(win):
+            # --- Event handling ---
             glfw.poll_events()
             if glfw.get_key(win, glfw.KEY_ESCAPE) == glfw.PRESS:
                 break
@@ -243,14 +244,18 @@ def main(argv=None):
                 print(f"edge_thresh -> {cfg.edge_thresh:.4f}")
                 time.sleep(0.05)
 
+            # --- Time delta ---
             now = time.time()
             dt = min(cfg.dt_clamp, now - prev_t)
             prev_t = now
 
+            # --- Segmentation processing ---
+            # Get camera frame and segmentation mask for the fluid sim.
             frame_bgr, cam_rgb_flipped, mask_small, area = seg.read_frame_and_mask(
                 sim.sim_w, sim.sim_h, cfg.width, cfg.height
             )
 
+            # Upload to GPU textures
             have_mask = False
             if frame_bgr is not None:
                 sim.upload_camera(cam_rgb_flipped)
@@ -259,11 +264,13 @@ def main(argv=None):
                     have_mask = True
 
             if running:
-                # Ambient dye & velocity if nothing detected
+                # --- Ambient emitters ---
+                # If no mask is detected, emit from ambient regions to keep it varied.
                 if not have_mask and cfg.ambient_emitters > 0:
                     ambient.step(dt, sim)
 
-                # ---- palette cycling ----
+                # --- Palette cycling ---
+                # Auto-cycle through color palettes.
                 if palette_cycle_on:
                     if not in_fade:
                         dwell_t += dt
@@ -293,10 +300,13 @@ def main(argv=None):
                         ),
                     )
 
-                # Main step of the simulation
+                # --- Simulation step ---
+                # This is where all the fluid magic happens.
                 sim.step(dt, have_mask)
 
-            # Present
+            # --- Render to screen ---
+            # All simulation work is done in offscreen framebuffers.
+            # This renders the final result to the screen.
             ctx.screen.use()
             sim.render_split(split_view)
             glfw.swap_buffers(win)
