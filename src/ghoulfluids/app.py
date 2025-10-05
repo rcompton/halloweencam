@@ -1,4 +1,6 @@
 from __future__ import annotations
+import argparse
+
 import time, math
 import glfw, moderngl
 import numpy as np
@@ -7,7 +9,13 @@ from .config import AppConfig
 from .fluid import FluidSim
 from .segmentation import MediaPipeSegmenter
 
-def main():
+def main(argv=None):
+    # --- CLI ---
+    parser = argparse.ArgumentParser(description="Ghoul Fluids")
+    parser.add_argument("--split", dest="split", action="store_true", help="Enable split view (camera | fluid)")
+    parser.set_defaults(split=False)
+    args = parser.parse_args(argv)
+
     cfg = AppConfig()
 
     # --- window / context ---
@@ -24,7 +32,8 @@ def main():
     seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
 
     running = True
-    split_view = True
+    split_view = bool(args.split)
+
     prev_t = time.time()
 
     print("SPACE pause  C clear  [/] vorticity -/+  P palette  V toggle split/fullscreen  ESC quit")
