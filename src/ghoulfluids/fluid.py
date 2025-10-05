@@ -78,7 +78,11 @@ class FluidSim:
         for fbo in (self.fbo_vel_a,self.fbo_vel_b,self.fbo_dye_a,self.fbo_dye_b,
                     self.fbo_prs,self.fbo_prs_b,self.fbo_div,self.fbo_curl):
             fbo.use(); ctx.clear(0,0,0,1)
-        ctx.screen.use()
+        try:
+            self.ctx.screen.use()
+        except Exception:
+            print("Warning: could not set screen framebuffer (yet?)")
+            pass
 
         # static uniforms
         self.prog_div['texel'].value = self.texel

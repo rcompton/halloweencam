@@ -9,7 +9,9 @@ dependencies = [
   "glfw>=2.7.0",
   "numpy>=1.24",
   "opencv-python>=4.9",
-  "mediapipe>=0.10.14"
+  "mediapipe>=0.10.14",
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
 ]
 
 [project.scripts]
