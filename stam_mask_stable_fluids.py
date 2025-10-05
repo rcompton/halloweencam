@@ -8,6 +8,50 @@
 import glfw, moderngl, numpy as np, time, math, cv2
 import mediapipe as mp
 
+# --- YOLO instance segmentation (multi-person) ---
+import torch
+from ultralytics import YOLO
+
+_YOLO_DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
+# small and fast; you can try 'yolov8s-seg.pt' for better edges if you have headroom
+_yolo = YOLO("yolov8n-seg.pt")  # downloads on first run
+_yolo.to(_YOLO_DEVICE)
+
+
+def people_mask_yolo(frame_bgr, out_w, out_h, conf=0.25):
+    """
+    Returns a float32 mask in [0,1] of size (out_h, out_w) that is the UNION
+    of all 'person' instance masks (class id 0 in COCO).
+    """
+    # YOLO expects RGB
+    rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+    # run at a reasonable size (you can raise imgsz for cleaner edges)
+    res = _yolo.predict(rgb, imgsz=640, device=_YOLO_DEVICE, conf=conf, verbose=False)[
+        0
+    ]
+
+    if res.masks is None or res.boxes is None or len(res.boxes) == 0:
+        return np.zeros((out_h, out_w), np.float32)
+
+    # select only class==0 (person)
+    cls = res.boxes.cls.cpu().numpy().astype(int)
+    keep = np.where(cls == 0)[0]
+    if keep.size == 0:
+        return np.zeros((out_h, out_w), np.float32)
+
+    # res.masks.data is (N, mh, mw) float masks in 0..1
+    m = res.masks.data[keep].cpu().numpy()  # (K, mh, mw)
+    # union of selected masks
+    union = np.clip(np.max(m, axis=0), 0, 1)
+
+    # resize to your SIM grid (or window) and FLIP V so UV↑ matches image↓
+    union = cv2.resize(
+        union.astype(np.float32), (out_w, out_h), interpolation=cv2.INTER_LINEAR
+    )
+    union = cv2.flip(union, 0).astype(np.float32)
+    return union
+
+
 # ---------------- Config ----------------
 WIDTH, HEIGHT = 1024, 576
 SIM_SCALE = 0.9  # sim grid = SIM_SCALE * window
@@ -15,7 +59,7 @@ SUBSTEPS = 5
 DT_CLAMP = 0.033
 JACOBI_ITERS = 60
 VEL_DISSIPATION = 0.999
-DYE_DISSIPATION = 0.97
+DYE_DISSIPATION = 0.99
 VORTICITY = 5.0
 PALETTE_ON = 1
 
@@ -449,36 +493,34 @@ def main():
 
             # --- Camera & mask upload (to sim resolution) ---
             ret, frame = cap.read()
+            have_mask = False
             if ret:
-                frame = cv2.flip(frame, 1)
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                res = segmenter.process(rgb)
-                mask = res.segmentation_mask
-                if mask is not None:
-                    # Normalize to [0,1] float32
-                    m = np.asarray(mask, dtype=np.float32)
-                    # (Optional) light threshold to reduce noise at extremes
-                    # m = np.clip((m - (MASK_THRESHOLD*0.5)) / (1.0 - MASK_THRESHOLD*0.5), 0.0, 1.0)
-                    # Resize to sim grid for clean gradients also vertical flip (cv coords vs GL coords)
-                    m_small = cv2.flip(
-                        cv2.resize(m, (sim_w, sim_h), interpolation=cv2.INTER_LINEAR), 0
-                    )
-                    # Upload to GPU: shift prev -> curr
-                    # (Write prev first)
-                    prev_cpu = np.empty_like(m_small, dtype=np.float32)
-                    # Readback not needed; just keep previous CPU copy:
-                    # Maintain last mask on CPU:
-                    if have_mask:
-                        prev_cpu = last_mask_small
-                    else:
-                        prev_cpu[:] = m_small
-                        have_mask = True
-                    # write textures
-                    mask_prev.write(prev_cpu.tobytes())
+                frame = cv2.flip(frame, 1)  # mirror horizontally like before
+
+                # --- YOLO multi-person mask (sim grid size) ---
+                m_small = people_mask_yolo(frame, sim_w, sim_h, conf=0.25)
+                mask_area = float(
+                    (
+                        cv2.resize(
+                            m_small, (WIDTH, HEIGHT), interpolation=cv2.INTER_LINEAR
+                        )
+                        > 0.5
+                    ).mean()
+                )
+
+                have_mask = mask_area > 0.005  # be forgiving; tune as you like
+
+                if have_mask:
+                    # write to GPU textures for the edge-force pass exactly like before
+                    # keep a CPU copy as "previous" for temporal effects if you use them
+                    try:
+                        last_mask_small
+                    except NameError:
+                        last_mask_small = m_small.copy()
+
+                    mask_prev.write(last_mask_small.tobytes())
                     mask_curr.write(m_small.tobytes())
-                    last_mask_small = m_small
-                else:
-                    have_mask = False
+                    last_mask_small = m_small.copy()
 
             if running:
                 sdt = dt / SUBSTEPS
