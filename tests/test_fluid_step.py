@@ -1,34 +1,75 @@
+# tests/test_fluid_step.py
+
 import numpy as np
 from ghoulfluids.fluid import FluidSim
 
 
-def ring_mask(w, h, r=0.33, thick=0.03, cx=0.5, cy=0.5):
+def ring_mask(
+    w: int,
+    h: int,
+    r: float = 0.33,
+    thick: float = 0.03,
+    cx: float = 0.5,
+    cy: float = 0.5,
+) -> np.ndarray:
+    """Create a soft ring mask centered at (cx, cy) in UV space."""
     ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
-    u = xs / w
-    v = ys / h
+    u = xs / float(w)
+    v = ys / float(h)
     d = np.sqrt((u - cx) ** 2 + (v - cy) ** 2)
-    m = np.clip(1.0 - np.abs(d - r) / thick, 0.0, 1.0)
+    m = np.clip(1.0 - np.abs(d - r) / max(thick, 1e-6), 0.0, 1.0)
     return m.astype(np.float32)
 
 
-def tex_to_np(tex, comps):
-    arr = np.frombuffer(tex.read(), dtype=np.float32)
-    return arr.reshape(tex.height, tex.width, comps)
+def tex_to_np(tex, comps: int) -> np.ndarray:
+    """Read a ModernGL texture into a float32 numpy array.
+    Works for FP16 ('f2') and FP32 ('f4') textures (and uint8 'f1' for camera).
+    """
+    dtype_map = {
+        "f1": np.uint8,  # e.g., camera RGB8
+        "f2": np.float16,  # half-float
+        "f4": np.float32,  # float
+    }
+    # Some ModernGL versions expose Texture.dtype; fall back to f4 if missing.
+    dt = dtype_map.get(getattr(tex, "dtype", "f4"), np.float32)
+
+    raw = tex.read()  # bytes
+    arr = np.frombuffer(raw, dtype=dt)
+
+    expected_elems = tex.height * tex.width * comps
+    if arr.size != expected_elems:
+        raise AssertionError(
+            f"Unexpected texture element count: got {arr.size}, "
+            f"expected {expected_elems} ({tex.width}x{tex.height}x{comps}, dtype={getattr(tex, 'dtype', 'f4')})"
+        )
+
+    arr = arr.reshape(tex.height, tex.width, comps)
+    return arr.astype(np.float32, copy=False)
 
 
 def test_mask_force_changes_velocity(ctx, small_cfg):
     sim = FluidSim(ctx, small_cfg)
+
+    # Upload a ring mask at sim resolution to create strong edges
     m = ring_mask(sim.sim_w, sim.sim_h)
     sim.upload_mask(m)
+
+    # Step once with mask forces enabled
     sim.step(0.016, have_mask=True)
+
+    # Velocity should change away from exactly zero
     v = tex_to_np(sim.vel_a, 2)
-    max_mag = np.sqrt((v[..., 0] ** 2 + v[..., 1] ** 2)).max()
+    max_mag = np.sqrt(v[..., 0] ** 2 + v[..., 1] ** 2).max()
     assert max_mag > 1e-6, "Velocity did not change after applying mask force"
 
 
 def test_advects_dye_even_without_mask(ctx, small_cfg):
     sim = FluidSim(ctx, small_cfg)
+
+    # A few steps without a mask should be stable (no exceptions) and yield a valid dye tex
     for _ in range(3):
         sim.step(0.016, have_mask=False)
+
     d = tex_to_np(sim.dye_a, 4)
-    assert d.shape == (small_cfg.height, small_cfg.width, 4)
+    # Dye runs at render-scaled resolution (sim.dye_w, sim.dye_h)
+    assert d.shape == (sim.dye_h, sim.dye_w, 4)
