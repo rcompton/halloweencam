@@ -10,37 +10,37 @@ import mediapipe as mp
 
 # ---------------- Config ----------------
 WIDTH, HEIGHT = 1024, 576
-SIM_SCALE = 0.7  # sim grid = SIM_SCALE * window
-SUBSTEPS = 3
+SIM_SCALE = 0.9  # sim grid = SIM_SCALE * window
+SUBSTEPS = 5
 DT_CLAMP = 0.033
-JACOBI_ITERS = 28
+JACOBI_ITERS = 60
 VEL_DISSIPATION = 0.999
-DYE_DISSIPATION = 0.996
-VORTICITY = 2.4
+DYE_DISSIPATION = 0.97
+VORTICITY = 5.0
 PALETTE_ON = 1
 
 # Mask / CV
 CAMERA_INDEX = 0
-MASK_THRESHOLD = 0.35  # for centroid fallback & noise trimming (not needed for force)
+MASK_THRESHOLD = 0.15  # for centroid fallback & noise trimming (not needed for force)
 MASK_MIN_AREA = 0.02
 
 # Edge-based force params (primary knobs)
-EDGE_THRESH = 0.02  # minimum gradient magnitude to be considered an edge
-EDGE_NORMAL_AMP = 4.0  # push along normals (higher = stronger "shove")
-EDGE_TANGENTIAL_AMP = 1.5  # spin along edge (vortex seeding)
+EDGE_THRESH = 0.01  # minimum gradient magnitude to be considered an edge
+EDGE_NORMAL_AMP = 1.0  # push along normals (higher = stronger "shove")
+EDGE_TANGENTIAL_AMP = 1.0  # spin along edge (vortex seeding)
 EDGE_USE_TEMPORAL = True  # scale normal push by mask growth/shrink
 EDGE_DYE_STRENGTH = 0.10  # dye added along edges each step
 EDGE_DYE_RADIUS = (
-    0.0  # 0 => per-pixel add; >0 => soften via small blur pass (we keep 0)
+    0.001  # 0 => per-pixel add; >0 => soften via small blur pass (we keep 0)
 )
 
 # Fallback ambient source when mask is missing
 USE_FALLBACK_ORBIT = True
 ORBIT_R = 0.18
 ORBIT_SPEED = 0.35
-MICRO_SPLATS_PER_FRAME = 3
-MICRO_SPLAT_RADIUS = 0.018
-MICRO_SPLAT_STRENGTH = 0.05
+MICRO_SPLATS_PER_FRAME = 2
+MICRO_SPLAT_RADIUS = 0.010
+MICRO_SPLAT_STRENGTH = 0.02
 
 # ---------------- Shaders ----------------
 VS = """
