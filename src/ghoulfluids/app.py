@@ -1,5 +1,8 @@
 from __future__ import annotations
 import argparse
+import os
+import shutil
+import sys
 
 import time, math
 import glfw, moderngl
@@ -120,7 +123,24 @@ def main(argv=None):
 
     win = glfw.create_window(cfg.width, cfg.height, "Ghoul Fluids", monitor, None)
     glfw.make_context_current(win)
-    ctx = moderngl.create_context()
+
+    def _linux_gl_hint():
+        if sys.platform.startswith("linux"):
+            have_gl = shutil.which("glxinfo") is not None
+            return (
+                "Linux OpenGL loaders not found.\n"
+                "Install the dev libraries:\n"
+                "  sudo apt install -y libgl1-mesa-dev libegl1-mesa-dev libglvnd-dev mesa-utils\n"
+                "Then re-run, or create symlinks:\n"
+                "  sudo ln -s /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/local/lib/libEGL.so && \\\n"
+                "  sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1  /usr/local/lib/libGL.so && sudo ldconfig\n"
+            )
+
+    try:
+        ctx = moderngl.create_context()
+    except Exception as e:
+        print(_linux_gl_hint() or "Failed to create ModernGL context.", file=sys.stderr)
+        raise
 
     sim = FluidSim(ctx, cfg)
     seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
