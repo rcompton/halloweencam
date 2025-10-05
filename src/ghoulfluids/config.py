@@ -6,12 +6,12 @@ class AppConfig:
     width: int = 1024
     height: int = 576
     sim_scale: float = 0.7
-    substeps: int = 3
+    substeps: int = 6
     dt_clamp: float = 0.033
-    jacobi_iters: int = 28
-    vorticity_eps: float = 2.4
-    vel_dissipation: float = 0.999
-    dye_dissipation: float = 0.999
+    jacobi_iters: int = 50
+    vorticity_eps: float = 3.0
+    vel_dissipation: float = 0.995
+    dye_dissipation: float = 0.994
     palette_on: int = 1
 
     # camera
