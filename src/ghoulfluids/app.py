@@ -37,7 +37,9 @@ def main(argv=None):
         action="store_true",
         help="Use 32-bit float for dye (default is FP16).",
     )
-    p.add_argument("--sim-max", type=int, help="Cap for max(sim_w, sim_h); default from config.")
+    p.add_argument(
+        "--sim-max", type=int, help="Cap for max(sim_w, sim_h); default from config."
+    )
 
     p.add_argument("--camera", type=int, help="Camera index (default from config.py)")
 
@@ -66,7 +68,8 @@ def main(argv=None):
         cfg.render_scale = max(0.3, min(1.0, args.render_scale))
     if args.dye_f32:
         cfg.dye_fp16 = False
-    if args.sim_max is not None: cfg.sim_max_dim = max(128, args.sim_max)
+    if args.sim_max is not None:
+        cfg.sim_max_dim = max(128, args.sim_max)
 
     if args.camera is not None:
         cfg.camera_index = args.camera
