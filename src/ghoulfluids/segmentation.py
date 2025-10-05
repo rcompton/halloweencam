@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 
+
 class MediaPipeSegmenter:
     def __init__(self, camera_index: int, width: int, height: int):
         self.cap = cv2.VideoCapture(camera_index)
@@ -30,19 +31,25 @@ class MediaPipeSegmenter:
 
         # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
         if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-            cam_rgb_flipped = cv2.resize(cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA)
+            cam_rgb_flipped = cv2.resize(
+                cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
+            )
 
         res = self.segmenter.process(cam_rgb)
         mask = res.segmentation_mask
         if mask is None:
             return frame, cam_rgb_flipped, None, 0.0
 
-        m_big = cv2.resize(mask.astype(np.float32), (win_w, win_h), interpolation=cv2.INTER_LINEAR)
+        m_big = cv2.resize(
+            mask.astype(np.float32), (win_w, win_h), interpolation=cv2.INTER_LINEAR
+        )
         area = float((m_big > 0.30).mean())
 
         m_small = cv2.flip(
-            cv2.resize(mask.astype(np.float32), (sim_w, sim_h), interpolation=cv2.INTER_LINEAR),
-            0
+            cv2.resize(
+                mask.astype(np.float32), (sim_w, sim_h), interpolation=cv2.INTER_LINEAR
+            ),
+            0,
         )
         return frame, cam_rgb_flipped, m_small, area
 
