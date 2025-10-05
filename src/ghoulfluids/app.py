@@ -1,6 +1,6 @@
 from __future__ import annotations
 import argparse
-import os
+import random
 import shutil
 import sys
 
@@ -11,6 +11,7 @@ import numpy as np
 from .config import AppConfig
 from .fluid import FluidSim
 from .segmentation import MediaPipeSegmenter
+from .ambient import AmbientController
 
 
 def main(argv=None):
@@ -144,6 +145,7 @@ def main(argv=None):
 
     sim = FluidSim(ctx, cfg)
     seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
+    ambient = AmbientController(cfg, seed=42)
 
     running = True
     split_view = bool(args.split)
@@ -247,42 +249,11 @@ def main(argv=None):
                     have_mask = True
 
             if running:
+                # Ambient dye & velocity
+                if not have_mask and cfg.ambient_emitters > 0:
+                    ambient.step(dt, sim)
+                # Main step of the simulation
                 sim.step(dt, have_mask)
-
-                # ambient dye when no mask
-                if cfg.use_fallback_orbit and not have_mask:
-                    t = now
-                    base_u = 0.5 + cfg.orbit_r * math.cos(t * cfg.orbit_speed)
-                    base_v = 0.5 + cfg.orbit_r * math.sin(t * cfg.orbit_speed)
-                    for i in range(cfg.micro_splats_per_frame):
-                        ang = (
-                            2
-                            * math.pi
-                            * (i / cfg.micro_splats_per_frame + 0.1 * math.sin(t * 0.4))
-                        )
-                        u = base_u + 0.010 * math.cos(ang)
-                        v = base_v + 0.010 * math.sin(ang)
-                        orange = np.array([1.0, 0.5, 0.0], dtype=np.float32)
-                        purple = np.array([0.45, 0.0, 0.6], dtype=np.float32)
-                        k = (
-                            i / cfg.micro_splats_per_frame + 0.2 * math.sin(t * 0.7)
-                        ) % 1.0
-                        col = (
-                            orange * (1.0 - k) + purple * k
-                        ) * cfg.micro_splat_strength
-
-                        sim.fbo_dye_b.use()
-                        sim.dye_a.use(location=0)
-                        sim.prog_splat["field"].value = 0
-                        sim.prog_splat["point"].value = (float(u), float(v))
-                        sim.prog_splat["value"].value = (
-                            float(col[0]),
-                            float(col[1]),
-                            float(col[2]),
-                        )
-                        sim.prog_splat["radius"].value = cfg.micro_splat_radius
-                        sim.vao_splat.render(moderngl.TRIANGLE_STRIP)
-                        sim.swap_dye()
 
             # Present
             ctx.screen.use()

@@ -29,10 +29,16 @@ class AppConfig:
     edge_use_temporal: bool = True
     edge_dye_strength: float = 0.10
 
-    # fallback ambient dye
-    use_fallback_orbit: bool = True
-    orbit_r: float = 0.18
-    orbit_speed: float = 0.35
-    micro_splats_per_frame: int = 3
-    micro_splat_radius: float = 0.018
-    micro_splat_strength: float = 0.05
+    # Ambient (when no mask is detected)
+    ambient_emitters: int = 30  # how many drifting wisps
+    ambient_speed: float = 0.10  # UV units per second
+    ambient_radius: float = 0.050  # splat radius (UV)
+    ambient_dye: float = 0.07  # dye intensity per splat
+    ambient_vel_amp: float = 0.25  # velocity injection strength (UV/s)
+    ambient_jitter: float = 0.35  # random wiggle factor (0..1)
+    ambient_margin: float = 0.05  # keep emitters away from walls
+
+    # occasional vortices to keep things rolling
+    vortex_interval: float = 1.6  # seconds between kicks
+    vortex_strength: float = 1.8  # tangential velocity strength
+    vortex_radius: float = 0.050  # how far the dipole is from the center
