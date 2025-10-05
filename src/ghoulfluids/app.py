@@ -29,83 +29,18 @@ def main(argv=None):
         action="store_true",
         help="Open in fullscreen on the primary monitor.",
     )
-    p.add_argument("--width", type=int, help="Window width (default from config.py)")
-    p.add_argument("--height", type=int, help="Window height (default from config.py)")
     p.add_argument(
         "--render-scale",
         type=float,
         help="Dye render scale (0.3–1.0). Default from config.",
     )
-    p.add_argument(
-        "--dye-f32",
-        action="store_true",
-        help="Use 32-bit float for dye (default is FP16).",
-    )
-    p.add_argument(
-        "--sim-max", type=int, help="Cap for max(sim_w, sim_h); default from config."
-    )
-
-    p.add_argument("--camera", type=int, help="Camera index (default from config.py)")
-
-    # edge force params
-    p.add_argument("--edge-normal", type=float, help="Edge normal force amplitude")
-    p.add_argument("--edge-tangent", type=float, help="Edge tangential force amplitude")
-    p.add_argument("--edge-thresh", type=float, help="Edge gradient threshold")
-
-    # core fluid knobs
-    p.add_argument("--vorticity", type=float, help="Vorticity confinement (eps)")
-    p.add_argument("--vel-diss", type=float, help="Velocity dissipation (<=1.0)")
-    p.add_argument("--dye-diss", type=float, help="Dye dissipation (<=1.0)")
-    p.add_argument("--substeps", type=int, help="Simulation substeps per frame")
-    p.add_argument("--jacobi", type=int, help="Jacobi iterations for pressure")
-    p.add_argument("--dt-clamp", type=float, help="Max dt per frame (seconds)")
-
     args = p.parse_args(argv)
 
     # --- config ---
     cfg = AppConfig()
-    if args.width:
-        cfg.width = args.width
-    if args.height:
-        cfg.height = args.height
     if args.render_scale is not None:
         cfg.render_scale = max(0.3, min(1.0, args.render_scale))
-    if args.dye_f32:
-        cfg.dye_fp16 = False
-    if args.sim_max is not None:
-        cfg.sim_max_dim = max(128, args.sim_max)
 
-    if args.camera is not None:
-        cfg.camera_index = args.camera
-
-    if args.edge_normal is not None:
-        cfg.edge_normal_amp = args.edge_normal
-    if args.edge_tangent is not None:
-        cfg.edge_tangent_amp = args.edge_tangent
-    if args.edge_thresh is not None:
-        cfg.edge_thresh = args.edge_thresh
-
-    if args.vorticity is not None:
-        cfg.vorticity_eps = args.vorticity
-    if args.vel_diss is not None:
-        cfg.vel_dissipation = args.vel_diss
-    if args.dye_diss is not None:
-        cfg.dye_dissipation = args.dye_diss
-    if args.substeps is not None:
-        cfg.substeps = args.substeps
-    if args.jacobi is not None:
-        cfg.jacobi_iters = args.jacobi
-    if args.dt_clamp is not None:
-        cfg.dt_clamp = args.dt_clamp
-
-    print(
-        f"edge_normal={cfg.edge_normal_amp:.3f}  "
-        f"edge_tangent={cfg.edge_tangent_amp:.3f}  "
-        f"edge_thresh={cfg.edge_thresh:.4f}  "
-        f"vorticity={cfg.vorticity_eps:.2f}  "
-        f"vel_diss={cfg.vel_dissipation:.6f}  dye_diss={cfg.dye_dissipation:.6f}  "
-        f"substeps={cfg.substeps}  jacobi={cfg.jacobi_iters}"
-    )
 
     # --- window / context ---
     if not glfw.init():
@@ -162,9 +97,7 @@ def main(argv=None):
 
     prev_t = time.time()
 
-    print(
-        "SPACE pause  C clear  [/] vorticity -/+  P palette  V toggle split/fullscreen  ESC quit"
-    )
+    print("SPACE pause  C clear  P palette  V toggle split/fullscreen  ESC quit")
     try:
         while not glfw.window_should_close(win):
             # --- Event handling ---
@@ -193,56 +126,12 @@ def main(argv=None):
                 except Exception:
                     print("Warning: could not re-bind screen framebuffer after clear")
                     pass
-            if glfw.get_key(win, glfw.KEY_LEFT_BRACKET) == glfw.PRESS:
-                sim.prog_vort["eps"].value = max(0.0, sim.prog_vort["eps"].value - 0.1)
-                time.sleep(0.05)
-            if glfw.get_key(win, glfw.KEY_RIGHT_BRACKET) == glfw.PRESS:
-                sim.prog_vort["eps"].value = min(5.0, sim.prog_vort["eps"].value + 0.1)
-                time.sleep(0.05)
             if glfw.get_key(win, glfw.KEY_P) == glfw.PRESS:
                 cfg.palette_on = 1 - cfg.palette_on
                 time.sleep(0.12)
             if glfw.get_key(win, glfw.KEY_V) == glfw.PRESS:
                 split_view = not split_view
                 time.sleep(0.12)
-            # Edge strength hotkeys
-            if glfw.get_key(win, glfw.KEY_1) == glfw.PRESS:
-                cfg.edge_normal_amp = max(0.0, cfg.edge_normal_amp - 0.1)
-                sim.prog_maskF["amp_normal"].value = cfg.edge_normal_amp
-                print(f"edge_normal -> {cfg.edge_normal_amp:.3f}")
-                time.sleep(0.05)
-
-            if glfw.get_key(win, glfw.KEY_2) == glfw.PRESS:
-                cfg.edge_normal_amp += 0.1
-                sim.prog_maskF["amp_normal"].value = cfg.edge_normal_amp
-                print(f"edge_normal -> {cfg.edge_normal_amp:.3f}")
-                time.sleep(0.05)
-
-            if glfw.get_key(win, glfw.KEY_3) == glfw.PRESS:
-                cfg.edge_tangent_amp = max(0.0, cfg.edge_tangent_amp - 0.1)
-                sim.prog_maskF["amp_tangent"].value = cfg.edge_tangent_amp
-                print(f"edge_tangent -> {cfg.edge_tangent_amp:.3f}")
-                time.sleep(0.05)
-
-            if glfw.get_key(win, glfw.KEY_4) == glfw.PRESS:
-                cfg.edge_tangent_amp += 0.1
-                sim.prog_maskF["amp_tangent"].value = cfg.edge_tangent_amp
-                print(f"edge_tangent -> {cfg.edge_tangent_amp:.3f}")
-                time.sleep(0.05)
-
-            if glfw.get_key(win, glfw.KEY_9) == glfw.PRESS:
-                cfg.edge_thresh = max(0.0, cfg.edge_thresh - 0.001)
-                sim.prog_maskF["edge_thresh"].value = cfg.edge_thresh
-                sim.prog_maskD["edge_thresh"].value = cfg.edge_thresh
-                print(f"edge_thresh -> {cfg.edge_thresh:.4f}")
-                time.sleep(0.05)
-
-            if glfw.get_key(win, glfw.KEY_0) == glfw.PRESS:
-                cfg.edge_thresh += 0.001
-                sim.prog_maskF["edge_thresh"].value = cfg.edge_thresh
-                sim.prog_maskD["edge_thresh"].value = cfg.edge_thresh
-                print(f"edge_thresh -> {cfg.edge_thresh:.4f}")
-                time.sleep(0.05)
 
             # --- Time delta ---
             now = time.time()
