@@ -3,7 +3,10 @@
 Real-time, GPU-driven **stable fluids** that respond to a live **people segmentation mask**.  
 Built with **ModernGL + GLFW + OpenCV + MediaPipe**. Optional split-screen shows the camera feed next to the effect — perfect for tuning a Halloween display.
 
-https://user-images.example/demo.gif  <!-- (optional: drop a clip/screenshot here) -->
+<p align="center">
+  <img src="./screenshot.png" alt="Ghoul Fluids screenshot" width="900">
+</p>
+
 
 ---
 
