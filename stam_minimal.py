@@ -1,4 +1,3 @@
-# step2_swirl_confirm.py
 # Same stable swirl advection as your working version, plus:
 # - runtime swirl strength control ([ and ])
 # - many micro-splats for wispy look (instead of 1 big blob)

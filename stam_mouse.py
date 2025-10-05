@@ -1,4 +1,3 @@
-# step4_mouse_stable_fluids_min.py
 # Minimal "real" stable fluids:
 # - velocity field (RG float) + dye
 # - mouse injects velocity (throw) and dye (paint)
