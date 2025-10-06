@@ -10,7 +10,7 @@ import numpy as np
 
 from .config import AppConfig
 from .fluid import FluidSim
-from .segmentation import MediaPipeSegmenter
+from .segmentation import MediaPipeSegmenter, YOLOSegmenter
 from .ambient import AmbientController
 
 
@@ -34,12 +34,21 @@ def main(argv=None):
         type=float,
         help="Dye render scale (0.3–1.0). Default from config.",
     )
+    p.add_argument(
+        "--segmenter",
+        type=str,
+        choices=["mediapipe", "yolo"],
+        default=None,
+        help="Segmentation backend (mediapipe, yolo). Default: from config.",
+    )
     args = p.parse_args(argv)
 
     # --- config ---
     cfg = AppConfig()
     if args.render_scale is not None:
         cfg.render_scale = max(0.3, min(1.0, args.render_scale))
+    if args.segmenter is not None:
+        cfg.segmenter = args.segmenter
 
 
     # --- window / context ---
@@ -79,7 +88,18 @@ def main(argv=None):
         raise
 
     sim = FluidSim(ctx, cfg)
-    seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
+
+    if cfg.segmenter == "yolo":
+        print("Using YOLO segmenter")
+        seg = YOLOSegmenter(
+            cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model
+        )
+    elif cfg.segmenter == "mediapipe":
+        print("Using MediaPipe segmenter")
+        seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
+    else:
+        raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
+
     ambient = AmbientController(cfg, seed=42)
 
     # ---- palette cycle state ----
