@@ -7,14 +7,14 @@ class AppConfig:
     height: int = 576
     render_scale: float = 0.6  # 60% of window size by default
     dye_fp16: bool = True  # use half-float RGBA for dye
-    sim_scale: float = 0.7
+    sim_scale: float = 0.8
     sim_max_dim: int = 1024
-    substeps: int = 6
+    substeps: int = 5
     dt_clamp: float = 0.033
-    jacobi_iters: int = 50
+    jacobi_iters: int = 30
     vorticity_eps: float = 3.0
-    vel_dissipation: float = 0.995
-    dye_dissipation: float = 0.994
+    vel_dissipation: float = 0.99
+    dye_dissipation: float = 0.987
     palette_on: int = 1
 
     # camera
@@ -23,15 +23,15 @@ class AppConfig:
     # segmentation
     segmenter: str = "mediapipe"
     yolo_model: str = "yolov8n-seg.pt"
-    mask_threshold: float = 0.30
+    mask_threshold: float = 0.21
     mask_min_area: float = 0.01
 
     # edge forces
     edge_thresh: float = 0.02
-    edge_normal_amp: float = 4.0
-    edge_tangent_amp: float = 1.5
+    edge_normal_amp: float = 5.0
+    edge_tangent_amp: float = 2.5
     edge_use_temporal: bool = True
-    edge_dye_strength: float = 0.10
+    edge_dye_strength: float = 0.15
 
     # Ambient (when no mask is detected)
     ambient_emitters: int = 30  # how many drifting wisps
@@ -49,7 +49,7 @@ class AppConfig:
 
     # Palette defaults
     palette_on: int = 1
-    palette_id: int = 4  # start palette (0..5)
+    palette_id: int = 5  # start palette (0..5)
     palette_cycle: bool = True  # slow auto-cycle through palettes
     palette_dwell: float = 15.0  # seconds to hold each palette
     palette_fade: float = 5.0  # seconds to crossfade to the next
