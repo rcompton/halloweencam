@@ -22,7 +22,7 @@ class AppConfig:
 
     # segmentation
     segmenter: str = "mediapipe"
-    yolo_model: str = "yolov8n-seg.engine"
+    yolo_model: str = "yolov8n-seg.pt"
     mask_threshold: float = 0.30
     mask_min_area: float = 0.01
 
