@@ -8,10 +8,11 @@ import time, math
 import glfw, moderngl
 import numpy as np
 
+from .ambient import AmbientController
 from .config import AppConfig
 from .fluid import FluidSim
+from .logging import get_logger, setup_logging
 from .segmentation import MediaPipeSegmenter, YOLOSegmenter
-from .ambient import AmbientController
 
 
 def main(argv=None):
@@ -50,6 +51,9 @@ def main(argv=None):
     if args.segmenter is not None:
         cfg.segmenter = args.segmenter
 
+    # --- logging ---
+    setup_logging(cfg.log_level)
+    logger = get_logger(__name__)
 
     # --- window / context ---
     if not glfw.init():
@@ -84,18 +88,16 @@ def main(argv=None):
     try:
         ctx = moderngl.create_context()
     except Exception as e:
-        print(_linux_gl_hint() or "Failed to create ModernGL context.", file=sys.stderr)
+        logger.error(_linux_gl_hint() or "Failed to create ModernGL context.")
         raise
 
     sim = FluidSim(ctx, cfg)
 
     if cfg.segmenter == "yolo":
-        print("Using YOLO segmenter")
-        seg = YOLOSegmenter(
-            cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model
-        )
+        logger.info("Using YOLO segmenter")
+        seg = YOLOSegmenter(cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model)
     elif cfg.segmenter == "mediapipe":
-        print("Using MediaPipe segmenter")
+        logger.info("Using MediaPipe segmenter")
         seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
     else:
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
@@ -116,8 +118,11 @@ def main(argv=None):
     split_view = bool(args.split)
 
     prev_t = time.time()
+    frame_count = 0
+    log_interval = 1.0  # seconds
+    time_since_log = 0.0
 
-    print("SPACE pause  C clear  P palette  V toggle split/fullscreen  ESC quit")
+    logger.info("SPACE pause  C clear  P palette  V toggle split/fullscreen  ESC quit")
     try:
         while not glfw.window_should_close(win):
             # --- Event handling ---
@@ -144,7 +149,7 @@ def main(argv=None):
                     ctx.screen.use()
                     time.sleep(0.12)
                 except Exception:
-                    print("Warning: could not re-bind screen framebuffer after clear")
+                    logger.warning("Could not re-bind screen framebuffer after clear")
                     pass
             if glfw.get_key(win, glfw.KEY_P) == glfw.PRESS:
                 cfg.palette_on = 1 - cfg.palette_on
@@ -218,6 +223,16 @@ def main(argv=None):
             # This renders the final result to the screen.
             ctx.screen.use()
             sim.render_split(split_view)
+
+            # --- Performance logging ---
+            frame_count += 1
+            time_since_log += dt
+            if time_since_log >= log_interval:
+                fps = frame_count / time_since_log
+                logger.info(f"FPS: {fps:.2f} | dt: {dt:.4f}")
+                frame_count = 0
+                time_since_log = 0.0
+
             glfw.swap_buffers(win)
 
     finally:
