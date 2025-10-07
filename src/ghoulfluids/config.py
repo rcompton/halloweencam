@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class AppConfig:
+    log_level: str = "INFO"
     width: int = 1024
     height: int = 576
     render_scale: float = 0.6  # 60% of window size by default
