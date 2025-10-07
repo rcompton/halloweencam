@@ -42,6 +42,12 @@ def main(argv=None):
         default=None,
         help="Segmentation backend (mediapipe, yolo). Default: from config.",
     )
+    p.add_argument(
+        "--log-file",
+        type=str,
+        default=None,
+        help="Log to a file instead of the console.",
+    )
     args = p.parse_args(argv)
 
     # --- config ---
@@ -50,9 +56,11 @@ def main(argv=None):
         cfg.render_scale = max(0.3, min(1.0, args.render_scale))
     if args.segmenter is not None:
         cfg.segmenter = args.segmenter
+    if args.log_file is not None:
+        cfg.log_file = args.log_file
 
     # --- logging ---
-    setup_logging(cfg.log_level)
+    setup_logging(cfg.log_level, cfg.log_file)
     logger = get_logger(__name__)
 
     # --- window / context ---
