@@ -12,9 +12,9 @@ class AppConfig:
     substeps: int = 5
     dt_clamp: float = 0.033
     jacobi_iters: int = 30
-    vorticity_eps: float = 3.0
-    vel_dissipation: float = 0.99
-    dye_dissipation: float = 0.987
+    vorticity_eps: float = 3.3
+    vel_dissipation: float = 0.98
+    dye_dissipation: float = 0.97
     palette_on: int = 1
 
     # camera
@@ -28,8 +28,8 @@ class AppConfig:
 
     # edge forces
     edge_thresh: float = 0.02
-    edge_normal_amp: float = 5.0
-    edge_tangent_amp: float = 2.5
+    edge_normal_amp: float = 6.0
+    edge_tangent_amp: float = 3.5
     edge_use_temporal: bool = True
     edge_dye_strength: float = 0.15
 
