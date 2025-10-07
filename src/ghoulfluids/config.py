@@ -5,16 +5,16 @@ from dataclasses import dataclass
 class AppConfig:
     width: int = 1024
     height: int = 576
-    render_scale: float = 0.5  # 60% of window size by default
+    render_scale: float = 0.4  # 60% of window size by default
     dye_fp16: bool = True  # use half-float RGBA for dye
-    sim_scale: float = 0.6
+    sim_scale: float = 0.4
     sim_max_dim: int = 960
     substeps: int = 2
     dt_clamp: float = 0.033
-    jacobi_iters: int = 18
+    jacobi_iters: int = 15
     vorticity_eps: float = 3.9
-    vel_dissipation: float = 0.999
-    dye_dissipation: float = 0.999
+    vel_dissipation: float = 0.99
+    dye_dissipation: float = 0.99
     palette_on: int = 1
 
     # camera
@@ -34,7 +34,7 @@ class AppConfig:
     edge_dye_strength: float = 0.15
 
     # Ambient (when no mask is detected)
-    ambient_emitters: int = 30  # how many drifting wisps
+    ambient_emitters: int = 10  # how many drifting wisps
     ambient_speed: float = 0.10  # UV units per second
     ambient_radius: float = 0.050  # splat radius (UV)
     ambient_dye: float = 0.07  # dye intensity per splat
