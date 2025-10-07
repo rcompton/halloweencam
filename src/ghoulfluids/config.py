@@ -25,6 +25,8 @@ class AppConfig:
     yolo_model: str = "yolov8n-seg.pt"
     mask_threshold: float = 0.21
     mask_min_area: float = 0.01
+    mask_hz: float = 20.0
+    mask_in_w: int = 512
 
     # edge forces
     edge_thresh: float = 0.02

@@ -13,6 +13,7 @@ htmlcov/
 
 # Ignore downloaded model files
 *.pt
+*.engine
 
 # Ignore virtual environment
 venv/

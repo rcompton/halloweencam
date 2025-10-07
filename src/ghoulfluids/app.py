@@ -90,7 +90,7 @@ def main(argv=None):
 
     if cfg.segmenter == "yolo":
         print("Using YOLO segmenter")
-        seg = YOLOSegmenter(cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model)
+        seg = YOLOSegmenter(cfg)
     elif cfg.segmenter == "mediapipe":
         print("Using MediaPipe segmenter")
         seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)

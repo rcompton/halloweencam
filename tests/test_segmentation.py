@@ -20,6 +20,14 @@ def mock_video_capture():
         yield mock_instance
 
 
+@pytest.fixture
+def yolo_cfg():
+    cfg = AppConfig()
+    cfg.camera_index = 0
+    cfg.yolo_model = "yolov8n-seg.pt"
+    return cfg
+
+
 @patch("mediapipe.solutions.selfie_segmentation.SelfieSegmentation")
 def test_mediapipe_segmenter_init(mock_mp, mock_video_capture):
     segmenter = MediaPipeSegmenter(0, 1920, 1080)
@@ -27,27 +35,33 @@ def test_mediapipe_segmenter_init(mock_mp, mock_video_capture):
     mock_mp.assert_called_once()
 
 
+@patch("pathlib.Path.exists", return_value=False)
 @patch("ghoulfluids.segmentation.YOLO")
-def test_yolo_segmenter_init(mock_yolo, mock_video_capture):
-    segmenter = YOLOSegmenter(0, 1920, 1080, "yolov8n-seg.pt")
+def test_yolo_segmenter_init(mock_yolo, mock_exists, mock_video_capture, yolo_cfg):
+    segmenter = YOLOSegmenter(yolo_cfg)
     assert segmenter.cap == mock_video_capture
-    mock_yolo.assert_called_once_with("yolov8n-seg.pt")
+    mock_yolo.assert_called_once()
+    args, _ = mock_yolo.call_args
+    assert str(args[0]) == "yolov8n-seg.pt"
 
 
 @patch("ghoulfluids.segmentation.YOLO")
-def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture):
+def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture, yolo_cfg):
     mock_model = mock_yolo.return_value
 
     # Mock YOLO model output
-    mock_mask = MagicMock()
-    mock_mask.data = [MagicMock()]
-    # Make the mask the same size as the frame to avoid resize issues in test
-    mock_mask.data[0].cpu().numpy.return_value = np.ones((480, 640), dtype=np.float32)
-    mock_results = [MagicMock()]
-    mock_results[0].masks = mock_mask
-    mock_model.return_value = mock_results
+    mock_predict_result = MagicMock()
+    mock_masks = MagicMock()
 
-    segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt")
+    # Mock tensor chain
+    mock_tensor = MagicMock()
+    mock_tensor.float.return_value.max.return_value.values.detach.return_value.to.return_value.numpy.return_value = np.ones((yolo_cfg.mask_in_w, yolo_cfg.mask_in_w), dtype=np.float32)
+
+    mock_masks.data = mock_tensor
+    mock_predict_result.masks = mock_masks
+    mock_model.predict.return_value = [mock_predict_result]
+
+    segmenter = YOLOSegmenter(yolo_cfg)
     frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
 
     assert frame is not None
@@ -57,16 +71,21 @@ def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture):
 
 
 @patch("ghoulfluids.segmentation.YOLO")
-def test_yolo_segmenter_read_frame_no_mask(mock_yolo, mock_video_capture):
+def test_yolo_segmenter_read_frame_no_mask(mock_yolo, mock_video_capture, yolo_cfg):
     mock_model = mock_yolo.return_value
-    mock_model.return_value = []  # No results
 
-    segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt")
+    # Mock YOLO model output
+    mock_predict_result = MagicMock()
+    mock_predict_result.masks = None
+    mock_model.predict.return_value = [mock_predict_result]
+
+    segmenter = YOLOSegmenter(yolo_cfg)
     frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
 
     assert frame is not None
     assert cam_rgb is not None
-    assert mask is None
+    assert mask is not None
+    assert np.all(mask == 0)
     assert area == 0.0
 
 
