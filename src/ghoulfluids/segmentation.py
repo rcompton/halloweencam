@@ -99,9 +99,8 @@ class YOLOSegmenter:
             mask_np = mask_tensor.cpu().numpy()
             # The mask might be smaller than the frame, resize it
             if mask_np.shape != (frame.shape[0], frame.shape[1]):
-                 mask_np = cv2.resize(mask_np, (frame.shape[1], frame.shape[0]))
+                mask_np = cv2.resize(mask_np, (frame.shape[1], frame.shape[0]))
             combined_mask = np.maximum(combined_mask, mask_np)
-
 
         if combined_mask.max() == 0:
             return frame, cam_rgb_flipped, None, 0.0
@@ -112,9 +111,7 @@ class YOLOSegmenter:
         area = float((m_big > 0.30).mean())
 
         m_small = cv2.flip(
-            cv2.resize(
-                combined_mask, (sim_w, sim_h), interpolation=cv2.INTER_LINEAR
-            ),
+            cv2.resize(combined_mask, (sim_w, sim_h), interpolation=cv2.INTER_LINEAR),
             0,
         )
         return frame, cam_rgb_flipped, m_small, area

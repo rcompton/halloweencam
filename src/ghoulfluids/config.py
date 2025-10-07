@@ -31,7 +31,7 @@ class AppConfig:
     edge_normal_amp: float = 6.0
     edge_tangent_amp: float = 3.5
     edge_use_temporal: bool = True
-    edge_dye_strength: float = 0.15
+    edge_dye_strength: float = 0.00
 
     # Ambient (when no mask is detected)
     ambient_emitters: int = 10  # how many drifting wisps
@@ -53,3 +53,6 @@ class AppConfig:
     palette_cycle: bool = True  # slow auto-cycle through palettes
     palette_dwell: float = 15.0  # seconds to hold each palette
     palette_fade: float = 5.0  # seconds to crossfade to the next
+
+    # optimzation
+    vorticity_stride: int = 2  # apply vorticity every 2nd substep

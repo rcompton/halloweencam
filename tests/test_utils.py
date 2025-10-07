@@ -25,6 +25,4 @@ def test_ring_mask_values():
     ), "Pixel on the ring should be close to 1.0"
 
     # Pixel far from the ring should be 0.0
-    assert np.isclose(
-        mask[0, 0], 0.0
-    ), "Pixel far from the ring should be 0.0"
+    assert np.isclose(mask[0, 0], 0.0), "Pixel far from the ring should be 0.0"

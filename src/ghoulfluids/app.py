@@ -50,7 +50,6 @@ def main(argv=None):
     if args.segmenter is not None:
         cfg.segmenter = args.segmenter
 
-
     # --- window / context ---
     if not glfw.init():
         raise RuntimeError("GLFW init failed")
@@ -91,9 +90,7 @@ def main(argv=None):
 
     if cfg.segmenter == "yolo":
         print("Using YOLO segmenter")
-        seg = YOLOSegmenter(
-            cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model
-        )
+        seg = YOLOSegmenter(cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model)
     elif cfg.segmenter == "mediapipe":
         print("Using MediaPipe segmenter")
         seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)

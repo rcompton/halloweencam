@@ -25,6 +25,8 @@ class FluidSim:
         self.ctx = ctx
         self.cfg = cfg
 
+        self._vort_counter = 0
+
         self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
         self.sim_h = max(32, int(cfg.height * cfg.sim_scale))
 
@@ -194,7 +196,9 @@ class FluidSim:
                 self.swap_vel()
 
             # Vorticity
-            if self.cfg.vorticity_eps > 0.0:
+            if self.cfg.vorticity_eps > 0.0 and (
+                self._vort_counter % max(1, self.cfg.vorticity_stride) == 0
+            ):
                 self.fbo_curl.use()
                 self.vel_a.use(location=0)
                 self.prog_curl["vel"].value = 0

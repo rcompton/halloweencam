@@ -7,27 +7,34 @@ from ghoulfluids.config import AppConfig
 from ghoulfluids.segmentation import MediaPipeSegmenter, YOLOSegmenter
 from ghoulfluids.app import main
 
+
 @pytest.fixture
 def mock_video_capture():
-    with patch('cv2.VideoCapture') as mock_cap:
+    with patch("cv2.VideoCapture") as mock_cap:
         mock_instance = mock_cap.return_value
         mock_instance.isOpened.return_value = True
-        mock_instance.read.return_value = (True, np.zeros((480, 640, 3), dtype=np.uint8))
+        mock_instance.read.return_value = (
+            True,
+            np.zeros((480, 640, 3), dtype=np.uint8),
+        )
         yield mock_instance
 
-@patch('mediapipe.solutions.selfie_segmentation.SelfieSegmentation')
+
+@patch("mediapipe.solutions.selfie_segmentation.SelfieSegmentation")
 def test_mediapipe_segmenter_init(mock_mp, mock_video_capture):
     segmenter = MediaPipeSegmenter(0, 1920, 1080)
     assert segmenter.cap == mock_video_capture
     mock_mp.assert_called_once()
 
-@patch('ghoulfluids.segmentation.YOLO')
+
+@patch("ghoulfluids.segmentation.YOLO")
 def test_yolo_segmenter_init(mock_yolo, mock_video_capture):
     segmenter = YOLOSegmenter(0, 1920, 1080, "yolov8n-seg.pt")
     assert segmenter.cap == mock_video_capture
     mock_yolo.assert_called_once_with("yolov8n-seg.pt")
 
-@patch('ghoulfluids.segmentation.YOLO')
+
+@patch("ghoulfluids.segmentation.YOLO")
 def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture):
     mock_model = mock_yolo.return_value
 
@@ -48,10 +55,11 @@ def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture):
     assert mask is not None
     assert area > 0
 
-@patch('ghoulfluids.segmentation.YOLO')
+
+@patch("ghoulfluids.segmentation.YOLO")
 def test_yolo_segmenter_read_frame_no_mask(mock_yolo, mock_video_capture):
     mock_model = mock_yolo.return_value
-    mock_model.return_value = [] # No results
+    mock_model.return_value = []  # No results
 
     segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt")
     frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
@@ -61,13 +69,16 @@ def test_yolo_segmenter_read_frame_no_mask(mock_yolo, mock_video_capture):
     assert mask is None
     assert area == 0.0
 
-@patch('ghoulfluids.app.glfw')
-@patch('moderngl.create_context')
-@patch('ghoulfluids.app.FluidSim')
-@patch('ghoulfluids.app.AmbientController')
-@patch('ghoulfluids.app.MediaPipeSegmenter')
-@patch('ghoulfluids.app.YOLOSegmenter')
-def test_app_main_segmenter_selection(mock_yolo, mock_mp, mock_ambient, mock_fluid, mock_gl, mock_glfw):
+
+@patch("ghoulfluids.app.glfw")
+@patch("moderngl.create_context")
+@patch("ghoulfluids.app.FluidSim")
+@patch("ghoulfluids.app.AmbientController")
+@patch("ghoulfluids.app.MediaPipeSegmenter")
+@patch("ghoulfluids.app.YOLOSegmenter")
+def test_app_main_segmenter_selection(
+    mock_yolo, mock_mp, mock_ambient, mock_fluid, mock_gl, mock_glfw
+):
     mock_glfw.init.return_value = True
     mock_glfw.get_key.return_value = glfw.RELEASE
 
@@ -79,8 +90,8 @@ def test_app_main_segmenter_selection(mock_yolo, mock_mp, mock_ambient, mock_flu
     mock_yolo.return_value.read_frame_and_mask.return_value = mock_return
 
     # Test default (mediapipe)
-    with patch.object(mock_glfw, 'window_should_close', side_effect=[False, True]):
-         main([])
+    with patch.object(mock_glfw, "window_should_close", side_effect=[False, True]):
+        main([])
     mock_mp.assert_called()
     mock_yolo.assert_not_called()
     mock_mp.return_value.read_frame_and_mask.assert_called()
@@ -89,8 +100,8 @@ def test_app_main_segmenter_selection(mock_yolo, mock_mp, mock_ambient, mock_flu
     mock_yolo.reset_mock()
 
     # Test explicit mediapipe
-    with patch.object(mock_glfw, 'window_should_close', side_effect=[False, True]):
-        main(['--segmenter', 'mediapipe'])
+    with patch.object(mock_glfw, "window_should_close", side_effect=[False, True]):
+        main(["--segmenter", "mediapipe"])
     mock_mp.assert_called()
     mock_yolo.assert_not_called()
     mock_mp.return_value.read_frame_and_mask.assert_called()
@@ -99,8 +110,8 @@ def test_app_main_segmenter_selection(mock_yolo, mock_mp, mock_ambient, mock_flu
     mock_yolo.reset_mock()
 
     # Test yolo
-    with patch.object(mock_glfw, 'window_should_close', side_effect=[False, True]):
-        main(['--segmenter', 'yolo'])
+    with patch.object(mock_glfw, "window_should_close", side_effect=[False, True]):
+        main(["--segmenter", "yolo"])
     mock_mp.assert_not_called()
     mock_yolo.assert_called()
     mock_yolo.return_value.read_frame_and_mask.assert_called()
