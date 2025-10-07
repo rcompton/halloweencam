@@ -1,8 +1,13 @@
 from dataclasses import dataclass
 
 
+from typing import Optional
+
+
 @dataclass
 class AppConfig:
+    log_level: str = "INFO"
+    log_file: Optional[str] = None
     width: int = 1024
     height: int = 576
     render_scale: float = 0.6  # 60% of window size by default
