@@ -5,13 +5,13 @@ from dataclasses import dataclass
 class AppConfig:
     width: int = 1024
     height: int = 576
-    render_scale: float = 0.6  # 60% of window size by default
+    render_scale: float = 0.5  # 60% of window size by default
     dye_fp16: bool = True  # use half-float RGBA for dye
-    sim_scale: float = 0.8
-    sim_max_dim: int = 1024
-    substeps: int = 3
+    sim_scale: float = 0.6
+    sim_max_dim: int = 960
+    substeps: int = 2
     dt_clamp: float = 0.033
-    jacobi_iters: int = 30
+    jacobi_iters: int = 18
     vorticity_eps: float = 3.9
     vel_dissipation: float = 0.999
     dye_dissipation: float = 0.999
