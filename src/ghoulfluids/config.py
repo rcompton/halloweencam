@@ -9,12 +9,12 @@ class AppConfig:
     dye_fp16: bool = True  # use half-float RGBA for dye
     sim_scale: float = 0.8
     sim_max_dim: int = 1024
-    substeps: int = 5
+    substeps: int = 6
     dt_clamp: float = 0.033
-    jacobi_iters: int = 30
-    vorticity_eps: float = 3.3
-    vel_dissipation: float = 0.98
-    dye_dissipation: float = 0.97
+    jacobi_iters: int = 50
+    vorticity_eps: float = 3.9
+    vel_dissipation: float = 0.95
+    dye_dissipation: float = 0.9
     palette_on: int = 1
 
     # camera
