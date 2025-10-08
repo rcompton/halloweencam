@@ -30,7 +30,9 @@ class FluidSim:
         if cfg.seg_width is not None and cfg.seg_height is not None:
             self.sim_w = cfg.seg_width
             self.sim_h = cfg.seg_height
-            logger.info(f"Using fixed segmentation dimensions: {self.sim_w}x{self.sim_h}")
+            logger.info(
+                f"Using fixed segmentation dimensions: {self.sim_w}x{self.sim_h}"
+            )
         else:
             self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
             self.sim_h = max(32, int(cfg.height * cfg.sim_scale))

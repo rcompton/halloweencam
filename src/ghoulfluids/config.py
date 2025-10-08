@@ -15,10 +15,14 @@ class AppConfig:
 
     # --- Simulation Core ---
     sim_scale: float = 0.7  # Simulation grid resolution relative to window size
-    sim_max_dim: int = 1024  # Maximum dimension (width or height) for the simulation grid
+    sim_max_dim: int = (
+        1024  # Maximum dimension (width or height) for the simulation grid
+    )
     substeps: int = 6  # Number of simulation substeps per frame
     dt_clamp: float = 0.033  # Maximum time delta to prevent instability (in seconds)
-    jacobi_iters: int = 50  # Number of iterations for the Jacobi solver (pressure projection)
+    jacobi_iters: int = (
+        50  # Number of iterations for the Jacobi solver (pressure projection)
+    )
     vorticity_eps: float = 3.0  # Vorticity confinement strength; 0 to disable
     vel_dissipation: float = 0.995  # Velocity dissipation factor per step (damping)
     dye_dissipation: float = 0.994  # Dye dissipation factor per step (fading)
@@ -28,17 +32,27 @@ class AppConfig:
 
     # --- Segmentation ---
     segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
-    seg_width: int | None = 1280  # Fixed width for the segmentation mask; overrides sim_scale if set
-    seg_height: int | None = 720  # Fixed height for the segmentation mask; overrides sim_scale if set
+    seg_width: int | None = (
+        1280  # Fixed width for the segmentation mask; overrides sim_scale if set
+    )
+    seg_height: int | None = (
+        720  # Fixed height for the segmentation mask; overrides sim_scale if set
+    )
     yolo_model: str = "yolov8n-seg.pt"  # Path to the YOLO model file
     mask_threshold: float = 0.30  # Confidence threshold for segmentation masks
-    mask_min_area: float = 0.01  # Minimum area fraction for a mask to be considered valid
+    mask_min_area: float = (
+        0.01  # Minimum area fraction for a mask to be considered valid
+    )
 
     # --- Edge Forces (from mask) ---
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
-    edge_normal_amp: float = 4.0  # Strength of the force pushing away from the mask edge
+    edge_normal_amp: float = (
+        4.0  # Strength of the force pushing away from the mask edge
+    )
     edge_tangent_amp: float = 1.5  # Strength of the force moving along the mask edge
-    edge_use_temporal: bool = True  # Use mask from the previous frame to calculate velocity
+    edge_use_temporal: bool = (
+        True  # Use mask from the previous frame to calculate velocity
+    )
     edge_dye_strength: float = 0.10  # How much dye to emit from the mask edges
 
     # --- Ambient (when no mask is detected) ---

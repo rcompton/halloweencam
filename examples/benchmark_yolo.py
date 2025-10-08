@@ -9,6 +9,7 @@ IMAGE_HEIGHT = 640
 NUM_WARMUP_RUNS = 10
 NUM_BENCHMARK_RUNS = 100
 
+
 def run_benchmark():
     """Loads a TensorRT model and benchmarks its inference speed."""
 
@@ -16,7 +17,7 @@ def run_benchmark():
     if not torch.cuda.is_available():
         print("CUDA is not available. TensorRT requires a GPU.")
         return
-    
+
     print(f"Using device: {torch.cuda.get_device_name(0)}")
 
     # 2. Load the TensorRT model
@@ -46,7 +47,7 @@ def run_benchmark():
     for _ in range(NUM_BENCHMARK_RUNS):
         model(dummy_input, verbose=False)
     end_time = time.perf_counter()
-    
+
     total_time = end_time - start_time
     avg_inference_time_ms = (total_time / NUM_BENCHMARK_RUNS) * 1000
     fps = NUM_BENCHMARK_RUNS / total_time
@@ -55,6 +56,6 @@ def run_benchmark():
     print(f"Average inference time: {avg_inference_time_ms:.2f} ms")
     print(f"Frames Per Second (FPS): {fps:.2f}")
 
+
 if __name__ == "__main__":
     run_benchmark()
-

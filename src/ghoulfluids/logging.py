@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def setup_logging(log_level: str = "INFO", log_file: str | None = None):
     """
     Configures the root logger for the application.
@@ -29,6 +30,7 @@ def setup_logging(log_level: str = "INFO", log_file: str | None = None):
 
     handler.setFormatter(formatter)
     root_logger.addHandler(handler)
+
 
 def get_logger(name: str) -> logging.Logger:
     """
