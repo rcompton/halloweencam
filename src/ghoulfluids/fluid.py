@@ -4,6 +4,7 @@ import numpy as np
 import moderngl
 from .config import AppConfig
 from . import shaders as S
+from .logging import get_logger
 
 
 def make_tex(ctx, size, comps, dtype="f4", clamp=True):
@@ -24,15 +25,23 @@ class FluidSim:
     def __init__(self, ctx: moderngl.Context, cfg: AppConfig):
         self.ctx = ctx
         self.cfg = cfg
+        logger = get_logger(__name__)
 
-        self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
-        self.sim_h = max(32, int(cfg.height * cfg.sim_scale))
+        if cfg.seg_width is not None and cfg.seg_height is not None:
+            self.sim_w = cfg.seg_width
+            self.sim_h = cfg.seg_height
+            logger.info(f"Using fixed segmentation dimensions: {self.sim_w}x{self.sim_h}")
+        else:
+            self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
+            self.sim_h = max(32, int(cfg.height * cfg.sim_scale))
 
-        max_dim = max(self.sim_w, self.sim_h)
-        if max_dim > cfg.sim_max_dim:
-            s = cfg.sim_max_dim / float(max_dim)
-            self.sim_w = max(32, int(self.sim_w * s))
-            self.sim_h = max(32, int(self.sim_h * s))
+            max_dim = max(self.sim_w, self.sim_h)
+            if max_dim > cfg.sim_max_dim:
+                s = cfg.sim_max_dim / float(max_dim)
+                self.sim_w = max(32, int(self.sim_w * s))
+                self.sim_h = max(32, int(self.sim_h * s))
+            logger.info(f"Calculated simulation dimensions: {self.sim_w}x{self.sim_h}")
+
         self.texel = (1.0 / self.sim_w, 1.0 / self.sim_h)
 
         self.dye_w = max(32, int(cfg.width * cfg.render_scale))

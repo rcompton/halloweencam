@@ -3,55 +3,61 @@ from dataclasses import dataclass
 
 @dataclass
 class AppConfig:
-    log_level: str = "INFO"
-    log_file: str | None = None
-    width: int = 1024
-    height: int = 576
-    render_scale: float = 0.6  # 60% of window size by default
-    dye_fp16: bool = True  # use half-float RGBA for dye
-    sim_scale: float = 0.7
-    sim_max_dim: int = 1024
-    substeps: int = 6
-    dt_clamp: float = 0.033
-    jacobi_iters: int = 50
-    vorticity_eps: float = 3.0
-    vel_dissipation: float = 0.995
-    dye_dissipation: float = 0.994
-    palette_on: int = 1
+    # --- Logging ---
+    log_level: str = "INFO"  # Minimum log level to output
+    log_file: str | None = None  # Redirect logs to a file instead of the console
 
-    # camera
-    camera_index: int = 0
+    # --- Window and Rendering ---
+    width: int = 1024  # Initial window width
+    height: int = 576  # Initial window height
+    render_scale: float = 0.6  # Dye texture resolution relative to window size
+    dye_fp16: bool = True  # Use half-float (16-bit) for dye textures for performance
 
-    # segmentation
-    segmenter: str = "mediapipe"
-    yolo_model: str = "yolov8n-seg.pt"
-    mask_threshold: float = 0.30
-    mask_min_area: float = 0.01
+    # --- Simulation Core ---
+    sim_scale: float = 0.7  # Simulation grid resolution relative to window size
+    sim_max_dim: int = 1024  # Maximum dimension (width or height) for the simulation grid
+    substeps: int = 6  # Number of simulation substeps per frame
+    dt_clamp: float = 0.033  # Maximum time delta to prevent instability (in seconds)
+    jacobi_iters: int = 50  # Number of iterations for the Jacobi solver (pressure projection)
+    vorticity_eps: float = 3.0  # Vorticity confinement strength; 0 to disable
+    vel_dissipation: float = 0.995  # Velocity dissipation factor per step (damping)
+    dye_dissipation: float = 0.994  # Dye dissipation factor per step (fading)
 
-    # edge forces
-    edge_thresh: float = 0.02
-    edge_normal_amp: float = 4.0
-    edge_tangent_amp: float = 1.5
-    edge_use_temporal: bool = True
-    edge_dye_strength: float = 0.10
+    # --- Camera ---
+    camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
 
-    # Ambient (when no mask is detected)
-    ambient_emitters: int = 30  # how many drifting wisps
-    ambient_speed: float = 0.10  # UV units per second
-    ambient_radius: float = 0.050  # splat radius (UV)
-    ambient_dye: float = 0.07  # dye intensity per splat
-    ambient_vel_amp: float = 0.25  # velocity injection strength (UV/s)
-    ambient_jitter: float = 0.35  # random wiggle factor (0..1)
-    ambient_margin: float = 0.05  # keep emitters away from walls
+    # --- Segmentation ---
+    segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
+    seg_width: int | None = 1280  # Fixed width for the segmentation mask; overrides sim_scale if set
+    seg_height: int | None = 720  # Fixed height for the segmentation mask; overrides sim_scale if set
+    yolo_model: str = "yolov8n-seg.pt"  # Path to the YOLO model file
+    mask_threshold: float = 0.30  # Confidence threshold for segmentation masks
+    mask_min_area: float = 0.01  # Minimum area fraction for a mask to be considered valid
 
-    # occasional vortices to keep things rolling
-    vortex_interval: float = 1.6  # seconds between kicks
-    vortex_strength: float = 1.8  # tangential velocity strength
-    vortex_radius: float = 0.050  # how far the dipole is from the center
+    # --- Edge Forces (from mask) ---
+    edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
+    edge_normal_amp: float = 4.0  # Strength of the force pushing away from the mask edge
+    edge_tangent_amp: float = 1.5  # Strength of the force moving along the mask edge
+    edge_use_temporal: bool = True  # Use mask from the previous frame to calculate velocity
+    edge_dye_strength: float = 0.10  # How much dye to emit from the mask edges
 
-    # Palette defaults
-    palette_on: int = 1
-    palette_id: int = 4  # start palette (0..5)
-    palette_cycle: bool = True  # slow auto-cycle through palettes
-    palette_dwell: float = 15.0  # seconds to hold each palette
-    palette_fade: float = 5.0  # seconds to crossfade to the next
+    # --- Ambient (when no mask is detected) ---
+    ambient_emitters: int = 30  # Number of drifting wisps to simulate
+    ambient_speed: float = 0.10  # Speed of ambient emitters (in UV units per second)
+    ambient_radius: float = 0.050  # Splat radius for ambient emitters (in UV units)
+    ambient_dye: float = 0.07  # Dye intensity per ambient splat
+    ambient_vel_amp: float = 0.25  # Velocity injection strength for ambient emitters
+    ambient_jitter: float = 0.35  # Random wiggle factor for emitter paths (0 to 1)
+    ambient_margin: float = 0.05  # Keep emitters away from the simulation borders
+
+    # --- Vortices (periodic kicks) ---
+    vortex_interval: float = 1.6  # Seconds between applying vortex kicks
+    vortex_strength: float = 1.8  # Tangential velocity strength of the vortices
+    vortex_radius: float = 0.050  # Distance of the vortex dipole from the center
+
+    # --- Palette ---
+    palette_on: int = 1  # Whether to use the color palettes (1 for on, 0 for off)
+    palette_id: int = 4  # Initial palette index (0 to 5)
+    palette_cycle: bool = True  # Whether to automatically cycle through palettes
+    palette_dwell: float = 15.0  # Seconds to stay on each palette
+    palette_fade: float = 5.0  # Seconds to fade between palettes
