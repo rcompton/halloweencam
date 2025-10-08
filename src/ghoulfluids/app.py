@@ -43,6 +43,18 @@ def main(argv=None):
         help="Segmentation backend (mediapipe, yolo). Default: from config.",
     )
     p.add_argument(
+        "--seg-width",
+        type=int,
+        default=None,
+        help="Fixed width for segmentation mask. Overrides sim_scale. Default: from config.",
+    )
+    p.add_argument(
+        "--seg-height",
+        type=int,
+        default=None,
+        help="Fixed height for segmentation mask. Overrides sim_scale. Default: from config.",
+    )
+    p.add_argument(
         "--log-file",
         type=str,
         default=None,
@@ -56,6 +68,10 @@ def main(argv=None):
         cfg.render_scale = max(0.3, min(1.0, args.render_scale))
     if args.segmenter is not None:
         cfg.segmenter = args.segmenter
+    if args.seg_width is not None:
+        cfg.seg_width = args.seg_width
+    if args.seg_height is not None:
+        cfg.seg_height = args.seg_height
     if args.log_file is not None:
         cfg.log_file = args.log_file
 
