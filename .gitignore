@@ -19,3 +19,6 @@ venv/
 env/
 .venv/
 .env/
+
+# Logs
+spooky.log
