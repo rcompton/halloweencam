@@ -6,13 +6,14 @@ import torch
 import numpy as np
 
 # --- Configuration ---
-MODEL_PATH = "yolov8n-seg.pt"
+MODEL_PATH = "yolo11m-seg.engine"
 IMAGE_DIR = "examples/images"
+# use multiples of 32 for resolutions because yolo repeatedly downsizes by factor of 2
 RESOLUTIONS = [
-    (640, 352),
-    (864, 480),
+    # (640, 352),
+    # (864, 480),
     (1280, 736),
-    (1920, 1088),
+    # (1920, 1088),
 ]
 NUM_WARMUP_RUNS = 10
 NUM_BENCHMARK_RUNS = 100
@@ -47,7 +48,11 @@ def run_benchmark():
         print("CUDA is not available. Running on CPU. This will be slow.")
 
     # 2. Get image paths
-    image_paths = [os.path.join(IMAGE_DIR, fname) for fname in os.listdir(IMAGE_DIR) if fname.endswith(('.png', '.jpg', '.jpeg'))]
+    image_paths = [
+        os.path.join(IMAGE_DIR, fname)
+        for fname in os.listdir(IMAGE_DIR)
+        if fname.endswith((".png", ".jpg", ".jpeg"))
+    ]
     if not image_paths:
         print(f"No images found in {IMAGE_DIR}. Please add some images to benchmark.")
         return
@@ -71,10 +76,14 @@ def run_benchmark():
     for width, height in RESOLUTIONS:
         # 4. Preprocess images for the current resolution
         try:
-            input_tensors = [preprocess_image(p, (width, height), device) for p in image_paths]
+            input_tensors = [
+                preprocess_image(p, (width, height), device) for p in image_paths
+            ]
             input_tensors = [t for t in input_tensors if t is not None]
             if not input_tensors:
-                print(f"All images failed to load for resolution {width}x{height}. Skipping.")
+                print(
+                    f"All images failed to load for resolution {width}x{height}. Skipping."
+                )
                 continue
         except Exception as e:
             print(f"Error during preprocessing at {width}x{height}: {e}")
