@@ -12,6 +12,7 @@ from .ambient import AmbientController
 from .config import AppConfig
 from .fluid import FluidSim
 from .logging import get_logger, setup_logging
+from .profiler import get_profiler
 from .segmentation import MediaPipeSegmenter, YOLOSegmenter
 
 
@@ -147,117 +148,134 @@ def main(argv=None):
     time_since_log = 0.0
 
     logger.info("SPACE pause  C clear  P palette  V toggle split/fullscreen  ESC quit")
+
+    profiler = get_profiler()
     try:
         while not glfw.window_should_close(win):
-            # --- Event handling ---
-            glfw.poll_events()
-            if glfw.get_key(win, glfw.KEY_ESCAPE) == glfw.PRESS:
-                break
-            if glfw.get_key(win, glfw.KEY_SPACE) == glfw.PRESS:
-                running = not running
-                time.sleep(0.12)
-            if glfw.get_key(win, glfw.KEY_C) == glfw.PRESS:
-                for fbo in (
-                    sim.fbo_vel_a,
-                    sim.fbo_vel_b,
-                    sim.fbo_dye_a,
-                    sim.fbo_dye_b,
-                    sim.fbo_prs,
-                    sim.fbo_prs_b,
-                    sim.fbo_div,
-                    sim.fbo_curl,
-                ):
-                    fbo.use()
-                    ctx.clear(0, 0, 0, 1)
-                try:
-                    ctx.screen.use()
+            with profiler.record("frame"):
+                # --- Event handling ---
+                glfw.poll_events()
+                if glfw.get_key(win, glfw.KEY_ESCAPE) == glfw.PRESS:
+                    break
+                if glfw.get_key(win, glfw.KEY_SPACE) == glfw.PRESS:
+                    running = not running
                     time.sleep(0.12)
-                except Exception:
-                    logger.warning("Could not re-bind screen framebuffer after clear")
-                    pass
-            if glfw.get_key(win, glfw.KEY_P) == glfw.PRESS:
-                cfg.palette_on = 1 - cfg.palette_on
-                time.sleep(0.12)
-            if glfw.get_key(win, glfw.KEY_V) == glfw.PRESS:
-                split_view = not split_view
-                time.sleep(0.12)
+                if glfw.get_key(win, glfw.KEY_C) == glfw.PRESS:
+                    for fbo in (
+                        sim.fbo_vel_a,
+                        sim.fbo_vel_b,
+                        sim.fbo_dye_a,
+                        sim.fbo_dye_b,
+                        sim.fbo_prs,
+                        sim.fbo_prs_b,
+                        sim.fbo_div,
+                        sim.fbo_curl,
+                    ):
+                        fbo.use()
+                        ctx.clear(0, 0, 0, 1)
+                    try:
+                        ctx.screen.use()
+                        time.sleep(0.12)
+                    except Exception:
+                        logger.warning(
+                            "Could not re-bind screen framebuffer after clear"
+                        )
+                        pass
+                if glfw.get_key(win, glfw.KEY_P) == glfw.PRESS:
+                    cfg.palette_on = 1 - cfg.palette_on
+                    time.sleep(0.12)
+                if glfw.get_key(win, glfw.KEY_V) == glfw.PRESS:
+                    split_view = not split_view
+                    time.sleep(0.12)
 
-            # --- Time delta ---
-            now = time.time()
-            dt = min(cfg.dt_clamp, now - prev_t)
-            prev_t = now
+                # --- Time delta ---
+                now = time.time()
+                actual_dt = now - prev_t
+                sim_dt = min(cfg.dt_clamp, actual_dt)
+                prev_t = now
 
-            # --- Segmentation processing ---
-            # Get camera frame and segmentation mask for the fluid sim.
-            frame_bgr, cam_rgb_flipped, mask_small, area = seg.read_frame_and_mask(
-                sim.sim_w, sim.sim_h, cfg.width, cfg.height
-            )
-
-            # Upload to GPU textures
-            have_mask = False
-            if frame_bgr is not None:
-                sim.upload_camera(cam_rgb_flipped)
-                if mask_small is not None and area > cfg.mask_min_area:
-                    sim.upload_mask(mask_small)
-                    have_mask = True
-
-            if running:
-                # --- Ambient emitters ---
-                # If no mask is detected, emit from ambient regions to keep it varied.
-                if not have_mask and cfg.ambient_emitters > 0:
-                    ambient.step(dt, sim)
-
-                # --- Palette cycling ---
-                # Auto-cycle through color palettes.
-                if palette_cycle_on:
-                    if not in_fade:
-                        dwell_t += dt
-                        if dwell_t >= cfg.palette_dwell:
-                            in_fade = True
-                            fade_t = 0.0
-                            next_pal = (curr_pal + 1) % N_PALETTES
-                    else:
-                        fade_t += dt
-                        mix = min(1.0, fade_t / max(0.001, cfg.palette_fade))
-                        sim.set_palette_blend(curr_pal, next_pal, mix)
-                        if mix >= 1.0:
-                            # commit and start next dwell
-                            curr_pal = next_pal
-                            dwell_t = 0.0
-                            in_fade = False
-                            sim.set_palette_blend(curr_pal, curr_pal, 0.0)
-                else:
-                    # no auto-cycle; ensure stable state
-                    sim.set_palette_blend(
-                        curr_pal,
-                        curr_pal if not in_fade else next_pal,
-                        (
-                            0.0
-                            if not in_fade
-                            else min(1.0, fade_t / max(0.001, cfg.palette_fade))
-                        ),
+                # --- Segmentation processing ---
+                # Get camera frame and segmentation mask for the fluid sim.
+                with profiler.record("segmentation"):
+                    (
+                        frame_bgr,
+                        cam_rgb_flipped,
+                        mask_small,
+                        area,
+                    ) = seg.read_frame_and_mask(
+                        sim.sim_w, sim.sim_h, cfg.width, cfg.height
                     )
 
-                # --- Simulation step ---
-                # This is where all the fluid magic happens.
-                sim.step(dt, have_mask)
+                # Upload to GPU textures
+                have_mask = False
+                if frame_bgr is not None:
+                    sim.upload_camera(cam_rgb_flipped)
+                    if mask_small is not None and area > cfg.mask_min_area:
+                        sim.upload_mask(mask_small)
+                        have_mask = True
 
-            # --- Render to screen ---
-            # All simulation work is done in offscreen framebuffers.
-            # This renders the final result to the screen.
-            ctx.screen.use()
-            sim.render_split(split_view)
+                if running:
+                    # --- Ambient emitters ---
+                    # If no mask is detected, emit from ambient regions to keep it varied.
+                    if not have_mask and cfg.ambient_emitters > 0:
+                        ambient.step(sim_dt, sim)
+
+                    # --- Palette cycling ---
+                    # Auto-cycle through color palettes.
+                    if palette_cycle_on:
+                        if not in_fade:
+                            dwell_t += sim_dt
+                            if dwell_t >= cfg.palette_dwell:
+                                in_fade = True
+                                fade_t = 0.0
+                                next_pal = (curr_pal + 1) % N_PALETTES
+                        else:
+                            fade_t += sim_dt
+                            mix = min(1.0, fade_t / max(0.001, cfg.palette_fade))
+                            sim.set_palette_blend(curr_pal, next_pal, mix)
+                            if mix >= 1.0:
+                                # commit and start next dwell
+                                curr_pal = next_pal
+                                dwell_t = 0.0
+                                in_fade = False
+                                sim.set_palette_blend(curr_pal, curr_pal, 0.0)
+                    else:
+                        # no auto-cycle; ensure stable state
+                        sim.set_palette_blend(
+                            curr_pal,
+                            curr_pal if not in_fade else next_pal,
+                            (
+                                0.0
+                                if not in_fade
+                                else min(1.0, fade_t / max(0.001, cfg.palette_fade))
+                            ),
+                        )
+
+                    # --- Simulation step ---
+                    # This is where all the fluid magic happens.
+                    with profiler.record("simulation"):
+                        sim.step(sim_dt, have_mask)
+
+                # --- Render to screen ---
+                # All simulation work is done in offscreen framebuffers.
+                # This renders the final result to the screen.
+                with profiler.record("render"):
+                    ctx.screen.use()
+                    sim.render_split(split_view)
 
             # --- Performance logging ---
             frame_count += 1
-            time_since_log += dt
+            time_since_log += actual_dt
             if time_since_log >= log_interval:
                 fps = frame_count / time_since_log
-                logger.info(f"FPS: {fps:.2f} | dt: {dt:.4f}")
+                frame_t_ms = (time_since_log / frame_count) * 1000.0
+                logger.info(f"FPS: {fps:.2f} | frame_t: {frame_t_ms:.2f}ms")
+                profiler.log_stats()
                 frame_count = 0
                 time_since_log = 0.0
 
-            glfw.swap_buffers(win)
+            with profiler.record("swap"):
+                glfw.swap_buffers(win)
 
     finally:
         seg.release()
