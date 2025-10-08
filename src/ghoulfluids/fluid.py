@@ -5,6 +5,7 @@ import moderngl
 from .config import AppConfig
 from . import shaders as S
 from .logging import get_logger
+from .profiler import get_profiler
 
 
 def make_tex(ctx, size, comps, dtype="f4", clamp=True):
@@ -26,6 +27,7 @@ class FluidSim:
         self.ctx = ctx
         self.cfg = cfg
         logger = get_logger(__name__)
+        self.profiler = get_profiler()
 
         if cfg.seg_width is not None and cfg.seg_height is not None:
             self.sim_w = cfg.seg_width
@@ -181,90 +183,96 @@ class FluidSim:
         sdt = dt / self.cfg.substeps
         for _ in range(self.cfg.substeps):
             # Advect velocity
-            self.fbo_vel_b.use()
-            self.vel_a.use(location=0)
-            self.vel_a.use(location=1)
-            self.prog_adv["vel"].value = 0
-            self.prog_adv["src"].value = 1
-            self.prog_adv["dt"].value = sdt
-            self.prog_adv["dissipation"].value = self.cfg.vel_dissipation
-            self.vao_adv.render(moderngl.TRIANGLE_STRIP)
-            self.swap_vel()
+            with self.profiler.record("advect_v"):
+                self.fbo_vel_b.use()
+                self.vel_a.use(location=0)
+                self.vel_a.use(location=1)
+                self.prog_adv["vel"].value = 0
+                self.prog_adv["src"].value = 1
+                self.prog_adv["dt"].value = sdt
+                self.prog_adv["dissipation"].value = self.cfg.vel_dissipation
+                self.vao_adv.render(moderngl.TRIANGLE_STRIP)
+                self.swap_vel()
 
             # Edge forces
             if have_mask:
-                self.fbo_vel_b.use()
-                self.vel_a.use(location=0)
-                self.mask_curr.use(location=1)
-                self.mask_prev.use(location=2)
-                self.prog_maskF["vel_in"].value = 0
-                self.prog_maskF["mask_curr"].value = 1
-                self.prog_maskF["mask_prev"].value = 2
-                self.prog_maskF["dt"].value = sdt
-                self.vao_maskF.render(moderngl.TRIANGLE_STRIP)
-                self.swap_vel()
+                with self.profiler.record("edge_force"):
+                    self.fbo_vel_b.use()
+                    self.vel_a.use(location=0)
+                    self.mask_curr.use(location=1)
+                    self.mask_prev.use(location=2)
+                    self.prog_maskF["vel_in"].value = 0
+                    self.prog_maskF["mask_curr"].value = 1
+                    self.prog_maskF["mask_prev"].value = 2
+                    self.prog_maskF["dt"].value = sdt
+                    self.vao_maskF.render(moderngl.TRIANGLE_STRIP)
+                    self.swap_vel()
 
             # Vorticity
             if self.cfg.vorticity_eps > 0.0:
-                self.fbo_curl.use()
+                with self.profiler.record("vorticity"):
+                    self.fbo_curl.use()
+                    self.vel_a.use(location=0)
+                    self.prog_curl["vel"].value = 0
+                    self.vao_curl.render(moderngl.TRIANGLE_STRIP)
+
+                    self.fbo_vel_b.use()
+                    self.vel_a.use(location=0)
+                    self.curl.use(location=1)
+                    self.prog_vort["vel"].value = 0
+                    self.prog_vort["curlTex"].value = 1
+                    self.prog_vort["dt"].value = sdt
+                    self.vao_vort.render(moderngl.TRIANGLE_STRIP)
+                    self.swap_vel()
+
+            # Projection
+            with self.profiler.record("projection"):
+                self.fbo_div.use()
                 self.vel_a.use(location=0)
-                self.prog_curl["vel"].value = 0
-                self.vao_curl.render(moderngl.TRIANGLE_STRIP)
+                self.prog_div["vel"].value = 0
+                self.vao_div.render(moderngl.TRIANGLE_STRIP)
+
+                for _j in range(self.cfg.jacobi_iters):
+                    self.fbo_prs_b.use()
+                    self.prs.use(location=0)
+                    self.div.use(location=1)
+                    self.prog_jac["prs"].value = 0
+                    self.prog_jac["div"].value = 1
+                    self.vao_jac.render(moderngl.TRIANGLE_STRIP)
+                    self.prs, self.prs_b = self.prs_b, self.prs
+                    self.fbo_prs, self.fbo_prs_b = self.fbo_prs_b, self.fbo_prs
 
                 self.fbo_vel_b.use()
                 self.vel_a.use(location=0)
-                self.curl.use(location=1)
-                self.prog_vort["vel"].value = 0
-                self.prog_vort["curlTex"].value = 1
-                self.prog_vort["dt"].value = sdt
-                self.vao_vort.render(moderngl.TRIANGLE_STRIP)
+                self.prs.use(location=1)
+                self.prog_grad["vel"].value = 0
+                self.prog_grad["prs"].value = 1
+                self.vao_grad.render(moderngl.TRIANGLE_STRIP)
                 self.swap_vel()
 
-            # Projection
-            self.fbo_div.use()
-            self.vel_a.use(location=0)
-            self.prog_div["vel"].value = 0
-            self.vao_div.render(moderngl.TRIANGLE_STRIP)
-
-            for _j in range(self.cfg.jacobi_iters):
-                self.fbo_prs_b.use()
-                self.prs.use(location=0)
-                self.div.use(location=1)
-                self.prog_jac["prs"].value = 0
-                self.prog_jac["div"].value = 1
-                self.vao_jac.render(moderngl.TRIANGLE_STRIP)
-                self.prs, self.prs_b = self.prs_b, self.prs
-                self.fbo_prs, self.fbo_prs_b = self.fbo_prs_b, self.fbo_prs
-
-            self.fbo_vel_b.use()
-            self.vel_a.use(location=0)
-            self.prs.use(location=1)
-            self.prog_grad["vel"].value = 0
-            self.prog_grad["prs"].value = 1
-            self.vao_grad.render(moderngl.TRIANGLE_STRIP)
-            self.swap_vel()
-
             # Advect dye
-            self.fbo_dye_b.use()
-            self.vel_a.use(location=0)
-            self.dye_a.use(location=1)
-            self.prog_adv["vel"].value = 0
-            self.prog_adv["src"].value = 1
-            self.prog_adv["dt"].value = sdt
-            self.prog_adv["dissipation"].value = self.cfg.dye_dissipation
-            self.vao_adv.render(moderngl.TRIANGLE_STRIP)
-            self.swap_dye()
+            with self.profiler.record("advect_d"):
+                self.fbo_dye_b.use()
+                self.vel_a.use(location=0)
+                self.dye_a.use(location=1)
+                self.prog_adv["vel"].value = 0
+                self.prog_adv["src"].value = 1
+                self.prog_adv["dt"].value = sdt
+                self.prog_adv["dissipation"].value = self.cfg.dye_dissipation
+                self.vao_adv.render(moderngl.TRIANGLE_STRIP)
+                self.swap_dye()
 
             # Outline dye (optional)
             if have_mask and self.cfg.edge_dye_strength > 0.0:
-                self.fbo_dye_b.use()
-                self.dye_a.use(location=0)
-                self.mask_curr.use(location=1)
-                self.prog_maskD["dye_in"].value = 0
-                self.prog_maskD["mask_curr"].value = 1
-                self.prog_maskD["strength"].value = self.cfg.edge_dye_strength
-                self.vao_maskD.render(moderngl.TRIANGLE_STRIP)
-                self.swap_dye()
+                with self.profiler.record("edge_dye"):
+                    self.fbo_dye_b.use()
+                    self.dye_a.use(location=0)
+                    self.mask_curr.use(location=1)
+                    self.prog_maskD["dye_in"].value = 0
+                    self.prog_maskD["mask_curr"].value = 1
+                    self.prog_maskD["strength"].value = self.cfg.edge_dye_strength
+                    self.vao_maskD.render(moderngl.TRIANGLE_STRIP)
+                    self.swap_dye()
 
     def render_split(self, split: bool):
         if split:
