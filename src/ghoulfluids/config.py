@@ -18,10 +18,10 @@ class AppConfig:
     sim_max_dim: int = (
         1024  # Maximum dimension (width or height) for the simulation grid
     )
-    substeps: int = 6  # Number of simulation substeps per frame
+    substeps: int = 7  # Number of simulation substeps per frame
     dt_clamp: float = 0.033  # Maximum time delta to prevent instability (in seconds)
     jacobi_iters: int = (
-        20  # Number of iterations for the Jacobi solver (pressure projection)
+        40  # Number of iterations for the Jacobi solver (pressure projection)
     )
     vorticity_eps: float = 3.0  # Vorticity confinement strength; 0 to disable
     vel_dissipation: float = 0.998  # Velocity dissipation factor per step (damping)
