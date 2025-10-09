@@ -192,6 +192,7 @@ def main(argv=None):
                 now = time.time()
                 actual_dt = now - prev_t
                 sim_dt = min(cfg.dt_clamp, actual_dt)
+
                 prev_t = now
 
                 # --- Segmentation processing ---

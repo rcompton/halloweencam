@@ -31,12 +31,12 @@ class AppConfig:
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
 
     # --- Segmentation ---
-    segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
+    segmenter: str = "yolo"  # Segmentation backend ('mediapipe' or 'yolo')
     seg_width: int | None = (
-        1280  # Fixed width for the segmentation mask; overrides sim_scale if set
+        640  # Fixed width for the segmentation mask; overrides sim_scale if set
     )
     seg_height: int | None = (
-        720  # Fixed height for the segmentation mask; overrides sim_scale if set
+        384  # Fixed height for the segmentation mask; overrides sim_scale if set
     )
     yolo_model: str = "yolov8n-seg.pt"  # Path to the YOLO model file
     mask_threshold: float = 0.30  # Confidence threshold for segmentation masks
