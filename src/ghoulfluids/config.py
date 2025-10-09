@@ -23,9 +23,9 @@ class AppConfig:
     jacobi_iters: int = (
         40  # Number of iterations for the Jacobi solver (pressure projection)
     )
-    vorticity_eps: float = 3.0  # Vorticity confinement strength; 0 to disable
+    vorticity_eps: float = 2.6  # Vorticity confinement strength; 0 to disable
     vel_dissipation: float = 0.998  # Velocity dissipation factor per step (damping)
-    dye_dissipation: float = 0.994  # Dye dissipation factor per step (fading)
+    dye_dissipation: float = 0.990  # Dye dissipation factor per step (fading)
 
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
@@ -39,7 +39,7 @@ class AppConfig:
         384  # Fixed height for the segmentation mask; overrides sim_scale if set
     )
     yolo_model: str = "yolo11s-seg.engine"  # Path to the YOLO model file
-    mask_threshold: float = 0.30  # Confidence threshold for segmentation masks
+    mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
     mask_min_area: float = (
         0.01  # Minimum area fraction for a mask to be considered valid
     )
@@ -47,9 +47,9 @@ class AppConfig:
     # --- Edge Forces (from mask) ---
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        5.0  # Strength of the force pushing away from the mask edge
+        4.7  # Strength of the force pushing away from the mask edge
     )
-    edge_tangent_amp: float = 2.5  # Strength of the force moving along the mask edge
+    edge_tangent_amp: float = 2.0  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
