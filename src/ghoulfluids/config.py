@@ -25,7 +25,7 @@ class AppConfig:
     )
     vorticity_eps: float = 3.0  # Vorticity confinement strength; 0 to disable
     vel_dissipation: float = 0.998  # Velocity dissipation factor per step (damping)
-    dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
+    dye_dissipation: float = 0.994  # Dye dissipation factor per step (fading)
 
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
