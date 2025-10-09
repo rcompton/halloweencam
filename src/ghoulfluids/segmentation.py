@@ -108,8 +108,11 @@ class YOLOSegmenter:
                 cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
             )
 
+        # Resize the frame to match the simulation dimensions, which align with the model's expected input.
+        model_input_frame = cv2.resize(cam_rgb, (sim_w, sim_h), interpolation=cv2.INTER_AREA)
+
         # Preprocess the frame for the model
-        input_tensor = self._preprocess_image(cam_rgb)
+        input_tensor = self._preprocess_image(model_input_frame)
 
         results = self.model(
             input_tensor, classes=[0], verbose=False
@@ -118,13 +121,19 @@ class YOLOSegmenter:
         if not results or not results[0].masks:
             return frame, cam_rgb_flipped, None, 0.0
 
-        # Combine masks for all detected persons
-        combined_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=np.float32)
+        # The output masks are relative to the model's input size (sim_w, sim_h).
+        # We need to combine them into a single mask of that size.
+        combined_mask = np.zeros((sim_h, sim_w), dtype=np.float32)
         for mask_tensor in results[0].masks.data:
             mask_np = mask_tensor.cpu().numpy()
-            # The mask might be smaller than the frame, resize it
-            if mask_np.shape != (frame.shape[0], frame.shape[1]):
-                mask_np = cv2.resize(mask_np, (frame.shape[1], frame.shape[0]))
+            # The mask from the model should match the model's input size.
+            # We resize it just in case there's a slight mismatch.
+            if mask_np.shape != (sim_h, sim_w):
+                mask_np = cv2.resize(
+                    mask_np,
+                    (sim_w, sim_h),
+                    interpolation=cv2.INTER_LINEAR,
+                )
             combined_mask = np.maximum(combined_mask, mask_np)
 
         if combined_mask.max() == 0:

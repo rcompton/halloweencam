@@ -36,7 +36,7 @@ class AppConfig:
         640  # Fixed width for the segmentation mask; overrides sim_scale if set
     )
     seg_height: int | None = (
-        384  # Fixed height for the segmentation mask; overrides sim_scale if set
+        352  # Fixed height for the segmentation mask; overrides sim_scale if set
     )
     yolo_model: str = "yolo11s-seg.engine"  # Path to the YOLO model file
     mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
