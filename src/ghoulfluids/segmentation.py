@@ -2,6 +2,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 import mediapipe as mp
+import torch
 from ultralytics import YOLO
 
 
@@ -68,6 +69,25 @@ class YOLOSegmenter:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         self.model = YOLO(model_name)
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+
+    def _preprocess_image(self, img: np.ndarray) -> torch.Tensor:
+        """Converts a NumPy image to a pre-processed torch tensor."""
+        # Ensure contiguous array
+        img = np.ascontiguousarray(img)
+        # Convert to tensor
+        tensor = torch.from_numpy(img).to(self.device)
+        # Use half precision on GPU
+        if self.device == "cuda":
+            tensor = tensor.half()
+        # HWC to CHW, add batch dimension
+        tensor = tensor.permute(2, 0, 1).unsqueeze(0)
+        # Normalize
+        tensor = tensor / 255.0
+        return tensor
 
     def read_frame_and_mask(self, sim_w: int, sim_h: int, win_w: int, win_h: int):
         """
@@ -88,7 +108,12 @@ class YOLOSegmenter:
                 cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
             )
 
-        results = self.model(cam_rgb, classes=[0], verbose=False)  # class 0 is 'person'
+        # Preprocess the frame for the model
+        input_tensor = self._preprocess_image(cam_rgb)
+
+        results = self.model(
+            input_tensor, classes=[0], verbose=False
+        )  # class 0 is 'person'
 
         if not results or not results[0].masks:
             return frame, cam_rgb_flipped, None, 0.0
