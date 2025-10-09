@@ -3,6 +3,9 @@ from dataclasses import dataclass
 
 @dataclass
 class AppConfig:
+    # --- Debugging ---
+    debug: bool = False  # Show debug overlay
+
     # --- Logging ---
     log_level: str = "INFO"  # Minimum log level to output
     log_file: str | None = None  # Redirect logs to a file instead of the console
