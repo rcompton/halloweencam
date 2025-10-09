@@ -5,9 +5,12 @@ import mediapipe as mp
 import torch
 from ultralytics import YOLO
 
+from .profiler import get_profiler
+
 
 class MediaPipeSegmenter:
     def __init__(self, camera_index: int, width: int, height: int):
+        self.profiler = get_profiler()
         self.cap = cv2.VideoCapture(camera_index)
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
@@ -37,7 +40,8 @@ class MediaPipeSegmenter:
                 cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
             )
 
-        res = self.segmenter.process(cam_rgb)
+        with self.profiler.record("mediapipe_process"):
+            res = self.segmenter.process(cam_rgb)
         mask = res.segmentation_mask
         if mask is None:
             return frame, cam_rgb_flipped, None, 0.0
@@ -62,6 +66,7 @@ class MediaPipeSegmenter:
 
 class YOLOSegmenter:
     def __init__(self, camera_index: int, width: int, height: int, model_name: str):
+        self.profiler = get_profiler()
         self.cap = cv2.VideoCapture(camera_index)
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
@@ -108,27 +113,29 @@ class YOLOSegmenter:
                 cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
             )
 
-        # Preprocess the frame for the model
-        input_tensor = self._preprocess_image(cam_rgb)
+        with self.profiler.record("yolo_preprocess"):
+            input_tensor = self._preprocess_image(cam_rgb)
 
-        results = self.model(
-            input_tensor, classes=[0], verbose=False
-        )  # class 0 is 'person'
+        with self.profiler.record("yolo_inference"):
+            results = self.model(
+                input_tensor, classes=[0], verbose=False
+            )  # class 0 is 'person'
 
-        if not results or not results[0].masks:
-            return frame, cam_rgb_flipped, None, 0.0
+        with self.profiler.record("yolo_postprocess"):
+            if not results or not results[0].masks:
+                return frame, cam_rgb_flipped, None, 0.0
 
-        # Combine masks for all detected persons
-        combined_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=np.float32)
-        for mask_tensor in results[0].masks.data:
-            mask_np = mask_tensor.cpu().numpy()
-            # The mask might be smaller than the frame, resize it
-            if mask_np.shape != (frame.shape[0], frame.shape[1]):
-                mask_np = cv2.resize(mask_np, (frame.shape[1], frame.shape[0]))
-            combined_mask = np.maximum(combined_mask, mask_np)
+            # Combine masks for all detected persons
+            combined_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=np.float32)
+            for mask_tensor in results[0].masks.data:
+                mask_np = mask_tensor.cpu().numpy()
+                # The mask might be smaller than the frame, resize it
+                if mask_np.shape != (frame.shape[0], frame.shape[1]):
+                    mask_np = cv2.resize(mask_np, (frame.shape[1], frame.shape[0]))
+                combined_mask = np.maximum(combined_mask, mask_np)
 
-        if combined_mask.max() == 0:
-            return frame, cam_rgb_flipped, None, 0.0
+            if combined_mask.max() == 0:
+                return frame, cam_rgb_flipped, None, 0.0
 
         m_big = cv2.resize(
             combined_mask, (win_w, win_h), interpolation=cv2.INTER_LINEAR

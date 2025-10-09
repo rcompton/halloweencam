@@ -239,3 +239,26 @@ in vec2 uv; out vec4 fragColor;
 uniform sampler2D cam;
 void main(){ fragColor = texture(cam, uv); }
 """
+
+VS_DEBUGOVERLAY = """
+#version 330
+in vec2 in_vert;
+in vec2 in_uv;
+out vec2 uv;
+void main() {
+    gl_Position = vec4(in_vert, 0.0, 1.0);
+    uv = in_uv;
+}
+"""
+
+FS_DEBUGOVERLAY = """
+#version 330
+in vec2 uv;
+out vec4 fragColor;
+uniform sampler2D fontTexture;
+uniform vec3 textColor;
+void main() {
+    float alpha = texture(fontTexture, uv).r;
+    fragColor = vec4(textColor, alpha);
+}
+"""

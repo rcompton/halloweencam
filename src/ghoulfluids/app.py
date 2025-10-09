@@ -10,6 +10,7 @@ import numpy as np
 
 from .ambient import AmbientController
 from .config import AppConfig
+from .debug import DebugOverlay
 from .fluid import FluidSim
 from .logging import get_logger, setup_logging
 from .profiler import get_profiler
@@ -61,6 +62,12 @@ def main(argv=None):
         default=None,
         help="Log to a file instead of the console.",
     )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show debug overlay.",
+    )
+    p.set_defaults(debug=False)
     args = p.parse_args(argv)
 
     # --- config ---
@@ -75,6 +82,8 @@ def main(argv=None):
         cfg.seg_height = args.seg_height
     if args.log_file is not None:
         cfg.log_file = args.log_file
+    if args.debug:
+        cfg.debug = True
 
     # --- logging ---
     setup_logging(cfg.log_level, cfg.log_file)
@@ -128,6 +137,10 @@ def main(argv=None):
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
 
     ambient = AmbientController(cfg, seed=42)
+
+    debug_overlay = None
+    if cfg.debug:
+        debug_overlay = DebugOverlay(ctx, cfg)
 
     # ---- palette cycle state ----
     N_PALETTES = 6  # keep in sync with shader list above
@@ -263,6 +276,29 @@ def main(argv=None):
                 with profiler.record("render"):
                     ctx.screen.use()
                     sim.render_split(split_view)
+
+                    if debug_overlay:
+                        # --- calculate FPS ---
+                        fps = 1.0 / actual_dt
+                        frame_t_ms = actual_dt * 1000.0
+
+                        # --- prepare text ---
+                        lines = [
+                            f"FPS: {fps:.2f} | frame_t: {frame_t_ms:.2f}ms",
+                            "--------------------",
+                        ]
+                        # profiler stats
+                        timings = profiler.get_timings()
+                        for k, v in sorted(timings.items()):
+                            lines.append(f"{k}: {v*1000:.2f}ms")
+                        lines.append("--------------------")
+                        # config settings
+                        lines.append(f"Segmenter: {cfg.segmenter}")
+                        lines.append(f"Sim Res: {sim.sim_w}x{sim.sim_h}")
+                        lines.append(f"Dye Res: {sim.dye_w}x{sim.dye_h}")
+
+                        # --- render text ---
+                        debug_overlay.render(lines, 10, cfg.height - 20)
 
             # --- Performance logging ---
             frame_count += 1
