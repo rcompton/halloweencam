@@ -190,7 +190,9 @@ def main(argv=None):
 
                 # --- Time delta ---
                 now = time.time()
-                dt = min(cfg.dt_clamp, now - prev_t)
+                actual_dt = now - prev_t
+                sim_dt = min(cfg.dt_clamp, actual_dt)
+
                 prev_t = now
 
                 # --- Segmentation processing ---
@@ -217,19 +219,19 @@ def main(argv=None):
                     # --- Ambient emitters ---
                     # If no mask is detected, emit from ambient regions to keep it varied.
                     if not have_mask and cfg.ambient_emitters > 0:
-                        ambient.step(dt, sim)
+                        ambient.step(sim_dt, sim)
 
                     # --- Palette cycling ---
                     # Auto-cycle through color palettes.
                     if palette_cycle_on:
                         if not in_fade:
-                            dwell_t += dt
+                            dwell_t += sim_dt
                             if dwell_t >= cfg.palette_dwell:
                                 in_fade = True
                                 fade_t = 0.0
                                 next_pal = (curr_pal + 1) % N_PALETTES
                         else:
-                            fade_t += dt
+                            fade_t += sim_dt
                             mix = min(1.0, fade_t / max(0.001, cfg.palette_fade))
                             sim.set_palette_blend(curr_pal, next_pal, mix)
                             if mix >= 1.0:
@@ -253,7 +255,7 @@ def main(argv=None):
                     # --- Simulation step ---
                     # This is where all the fluid magic happens.
                     with profiler.record("simulation"):
-                        sim.step(dt, have_mask)
+                        sim.step(sim_dt, have_mask)
 
                 # --- Render to screen ---
                 # All simulation work is done in offscreen framebuffers.
@@ -264,10 +266,11 @@ def main(argv=None):
 
             # --- Performance logging ---
             frame_count += 1
-            time_since_log += dt
+            time_since_log += actual_dt
             if time_since_log >= log_interval:
                 fps = frame_count / time_since_log
-                logger.info(f"FPS: {fps:.2f} | dt: {dt:.4f}")
+                frame_t_ms = (time_since_log / frame_count) * 1000.0
+                logger.info(f"FPS: {fps:.2f} | frame_t: {frame_t_ms:.2f}ms")
                 profiler.log_stats()
                 frame_count = 0
                 time_since_log = 0.0
