@@ -31,7 +31,7 @@ class AppConfig:
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
 
     # --- Segmentation ---
-    segmenter: str = "yolo"  # Segmentation backend ('mediapipe' or 'yolo')
+    segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
     seg_width: int | None = (
         640  # Fixed width for the segmentation mask; overrides sim_scale if set
     )
