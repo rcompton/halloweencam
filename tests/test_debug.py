@@ -49,9 +49,9 @@ def test_debug_overlay_init(mock_exists, mock_freetype, mock_ctx, config):
 def test_find_font_path(mock_exists, mock_ctx, config):
     """Test the _find_font_path method."""
     # Test case where a font is found
-    mock_exists.side_effect = lambda p: "consola.ttf" in p
+    mock_exists.side_effect = lambda p: "FiraCode-SemiBold.ttf" in p
     overlay = DebugOverlay(mock_ctx, config)
-    assert "consola.ttf" in overlay._find_font_path()
+    assert "FiraCode-SemiBold.ttf" in overlay._find_font_path()
 
     # Test case where no font is found
     mock_exists.side_effect = lambda p: False
