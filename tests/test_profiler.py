@@ -8,14 +8,16 @@ from ghoulfluids.profiler import Profiler, get_profiler
 def profiler():
     """Returns a new Profiler instance for each test."""
     # Reset the global profiler instance before each test
-    with patch('ghoulfluids.profiler._profiler', None):
+    with patch("ghoulfluids.profiler._profiler", None):
         yield get_profiler()
+
 
 def test_get_profiler_singleton():
     """Test that get_profiler always returns the same instance."""
     profiler1 = get_profiler()
     profiler2 = get_profiler()
     assert profiler1 is profiler2
+
 
 def test_profiler_record(profiler):
     """Test the record context manager."""
@@ -25,6 +27,7 @@ def test_profiler_record(profiler):
     timings = profiler.get_timings()
     assert "test_op" in timings
     assert timings["test_op"] > 0.0
+
 
 def test_profiler_get_timings(profiler):
     """Test the get_timings method."""
@@ -38,7 +41,8 @@ def test_profiler_get_timings(profiler):
     assert "op2" in timings
     assert timings["op1"] < timings["op2"]
 
-@patch('ghoulfluids.profiler.get_logger')
+
+@patch("ghoulfluids.profiler.get_logger")
 def test_profiler_log_stats(mock_get_logger):
     """Test that log_stats calls the logger with the correct stats."""
     mock_logger = MagicMock()

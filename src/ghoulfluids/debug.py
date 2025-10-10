@@ -50,7 +50,6 @@ class DebugOverlay:
             )
 
     def _find_font_path(self) -> str | None:
-        # Common paths for different OSes
         font_paths = ["fonts/FiraCode-SemiBold.ttf"]
         for path in font_paths:
             self.logger.info(f"Checking for font at: {path}")
@@ -74,7 +73,9 @@ class DebugOverlay:
                 height = max(height, face.glyph.bitmap.rows)
 
         if not width or not height:
-            self.logger.warning("Font atlas is empty, debug overlay will not render text.")
+            self.logger.warning(
+                "Font atlas is empty, debug overlay will not render text."
+            )
             self.font_loaded = False
             return
 
@@ -86,7 +87,10 @@ class DebugOverlay:
             # Handle characters with no glyph (e.g., control characters)
             if not face.glyph:
                 self.font_map[chr(i)] = {
-                    "size": (0, 0), "bearing": (0, 0), "advance": 0, "uv_offset": 0
+                    "size": (0, 0),
+                    "bearing": (0, 0),
+                    "advance": 0,
+                    "uv_offset": 0,
                 }
                 continue
 
@@ -106,10 +110,11 @@ class DebugOverlay:
                 "uv_offset": x / width if width > 0 else 0,
             }
             x += w
-
+        self.ctx.pack_alignment = 1
         self.font_texture = self.ctx.texture(
             (width, height), 1, texture_data.tobytes(), dtype="f1"
         )
+        self.ctx.pack_alignment = 4
         self.sampler.use(location=0)
 
     def render(self, lines: list[str], x: int, y: int, color=(1.0, 1.0, 1.0)):
@@ -130,7 +135,10 @@ class DebugOverlay:
             self.vbo.write(self.vertices[: self.char_count * 6].tobytes())
             self.prog["textColor"].value = color
             self.font_texture.use(location=0)
+            self.ctx.enable(moderngl.BLEND)
+            self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
             self.vao.render(moderngl.TRIANGLES, vertices=self.char_count * 6)
+            self.ctx.disable(moderngl.BLEND)
 
     def _add_char_quad(self, char, x, y):
         char_info = self.font_map[char]
