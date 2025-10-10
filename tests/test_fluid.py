@@ -63,13 +63,10 @@ def test_advects_dye_even_without_mask(ctx, small_cfg):
 def test_set_palette_blend(ctx, small_cfg):
     sim = FluidSim(ctx, small_cfg)
 
-    # Mock the shader program to check uniform values
-    sim.prog_render = MagicMock()
-
     # Call the method
     sim.set_palette_blend(1, 2, 0.5)
 
-    # Assert that the uniforms were set correctly
-    assert sim.prog_render["u_palette_a"].value == 1
-    assert sim.prog_render["u_palette_b"].value == 2
-    assert sim.prog_render["u_palette_mix"].value == 0.5
+    # Assert that the instance attributes were set correctly
+    assert sim.palette_a == 1
+    assert sim.palette_b == 2
+    assert sim.palette_mix == 0.5

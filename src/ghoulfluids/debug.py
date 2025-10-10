@@ -66,13 +66,30 @@ class DebugOverlay:
         face.set_pixel_sizes(0, size)
 
         # Create a texture atlas for the font
-        width = sum(face.load_char(c).glyph.advance.x >> 6 for c in range(128))
-        height = max(face.load_char(c).glyph.bitmap.rows for c in range(128))
+        width, height = 0, 0
+        for i in range(128):
+            face.load_char(chr(i), freetype.FT_LOAD_RENDER)
+            if face.glyph:
+                width += face.glyph.bitmap.width
+                height = max(height, face.glyph.bitmap.rows)
+
+        if not width or not height:
+            self.logger.warning("Font atlas is empty, debug overlay will not render text.")
+            self.font_loaded = False
+            return
 
         texture_data = np.zeros((height, width), dtype="u1")
         x = 0
         for i in range(128):
-            face.load_char(chr(i))
+            face.load_char(chr(i), freetype.FT_LOAD_RENDER)
+
+            # Handle characters with no glyph (e.g., control characters)
+            if not face.glyph:
+                self.font_map[chr(i)] = {
+                    "size": (0, 0), "bearing": (0, 0), "advance": 0, "uv_offset": 0
+                }
+                continue
+
             bitmap = face.glyph.bitmap
             w, h = bitmap.width, bitmap.rows
 
@@ -81,11 +98,12 @@ class DebugOverlay:
                     bitmap.buffer, dtype="u1"
                 ).reshape((h, w))
 
+            advance = face.glyph.advance.x >> 6
             self.font_map[chr(i)] = {
                 "size": (w, h),
                 "bearing": (face.glyph.bitmap_left, face.glyph.bitmap_top),
-                "advance": face.glyph.advance.x >> 6,
-                "uv_offset": x / width,
+                "advance": advance,
+                "uv_offset": x / width if width > 0 else 0,
             }
             x += w
 
