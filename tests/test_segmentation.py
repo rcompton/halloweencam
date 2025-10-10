@@ -27,6 +27,22 @@ def test_mediapipe_segmenter_init(mock_mp, mock_video_capture):
     mock_mp.assert_called_once()
 
 
+@patch("mediapipe.solutions.selfie_segmentation.SelfieSegmentation")
+def test_mediapipe_segmenter_read_frame_and_mask(mock_mp, mock_video_capture):
+    mock_segmentation = mock_mp.return_value
+    mock_results = MagicMock()
+    mock_results.segmentation_mask = np.ones((480, 640), dtype=np.float32)
+    mock_segmentation.process.return_value = mock_results
+
+    segmenter = MediaPipeSegmenter(0, 640, 480)
+    frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
+
+    assert frame is not None
+    assert cam_rgb is not None
+    assert mask is not None
+    assert area > 0
+
+
 @patch("ghoulfluids.segmentation.YOLO")
 def test_yolo_segmenter_init(mock_yolo, mock_video_capture):
     segmenter = YOLOSegmenter(0, 1920, 1080, "yolov8n-seg.pt")
