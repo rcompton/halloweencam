@@ -1,6 +1,7 @@
 # tests/test_fluid_step.py
 
 import numpy as np
+from unittest.mock import MagicMock
 from ghoulfluids.fluid import FluidSim
 from ghoulfluids.utils import ring_mask
 
@@ -57,3 +58,18 @@ def test_advects_dye_even_without_mask(ctx, small_cfg):
     d = tex_to_np(sim.dye_a, 4)
     # Dye runs at render-scaled resolution (sim.dye_w, sim.dye_h)
     assert d.shape == (sim.dye_h, sim.dye_w, 4)
+
+
+def test_set_palette_blend(ctx, small_cfg):
+    sim = FluidSim(ctx, small_cfg)
+
+    # Mock the shader program to check uniform values
+    sim.prog_render = MagicMock()
+
+    # Call the method
+    sim.set_palette_blend(1, 2, 0.5)
+
+    # Assert that the uniforms were set correctly
+    assert sim.prog_render["u_palette_a"].value == 1
+    assert sim.prog_render["u_palette_b"].value == 2
+    assert sim.prog_render["u_palette_mix"].value == 0.5
