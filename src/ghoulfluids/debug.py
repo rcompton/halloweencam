@@ -14,7 +14,9 @@ class DebugOverlay:
         self.ctx = ctx
         self.cfg = cfg
         self.logger = get_logger(__name__)
-        self.prog = self.ctx.program(vertex_shader=S.VS_DEBUGOVERLAY, fragment_shader=S.FS_DEBUGOVERLAY)
+        self.prog = self.ctx.program(
+            vertex_shader=S.VS_DEBUGOVERLAY, fragment_shader=S.FS_DEBUGOVERLAY
+        )
 
         self.sampler = self.ctx.sampler(
             filter=(moderngl.LINEAR, moderngl.LINEAR),
@@ -49,19 +51,14 @@ class DebugOverlay:
 
     def _find_font_path(self) -> str | None:
         # Common paths for different OSes
-        font_paths = [
-            # Linux
-            "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-            # macOS
-            "/System/Library/Fonts/Menlo.ttc",
-            # Windows
-            "C:/Windows/Fonts/consola.ttf",
-            "C:/Windows/Fonts/Consolas.ttf",
-        ]
+        font_paths = ["fonts/FiraCode-SemiBold.ttf"]
         for path in font_paths:
+            self.logger.info(f"Checking for font at: {path}")
             if os.path.exists(path):
+                self.logger.info(f"Found font at: {path}")
                 return path
+            else:
+                self.logger.info(f"Font not found at: {path}")
         return None
 
     def _load_font(self, font_path: str, size: int = 16):
@@ -80,17 +77,21 @@ class DebugOverlay:
             w, h = bitmap.width, bitmap.rows
 
             if w > 0 and h > 0:
-                texture_data[0:h, x:x+w] = np.array(bitmap.buffer, dtype="u1").reshape((h, w))
+                texture_data[0:h, x : x + w] = np.array(
+                    bitmap.buffer, dtype="u1"
+                ).reshape((h, w))
 
             self.font_map[chr(i)] = {
                 "size": (w, h),
                 "bearing": (face.glyph.bitmap_left, face.glyph.bitmap_top),
                 "advance": face.glyph.advance.x >> 6,
-                "uv_offset": x / width
+                "uv_offset": x / width,
             }
             x += w
 
-        self.font_texture = self.ctx.texture((width, height), 1, texture_data.tobytes(), dtype="f1")
+        self.font_texture = self.ctx.texture(
+            (width, height), 1, texture_data.tobytes(), dtype="f1"
+        )
         self.sampler.use(location=0)
 
     def render(self, lines: list[str], x: int, y: int, color=(1.0, 1.0, 1.0)):
@@ -108,7 +109,7 @@ class DebugOverlay:
             cursor_x = x
 
         if self.char_count > 0:
-            self.vbo.write(self.vertices[:self.char_count * 6].tobytes())
+            self.vbo.write(self.vertices[: self.char_count * 6].tobytes())
             self.prog["textColor"].value = color
             self.font_texture.use(location=0)
             self.vao.render(moderngl.TRIANGLES, vertices=self.char_count * 6)
@@ -130,11 +131,11 @@ class DebugOverlay:
         ph = (h / self.cfg.height) * 2.0
 
         v_idx = self.char_count * 6
-        self.vertices[v_idx]     = (px,      py + ph, u,       0.0)
-        self.vertices[v_idx + 1] = (px,      py,      u,       h / self.font_texture.height)
-        self.vertices[v_idx + 2] = (px + pw, py,      u + u_w, h / self.font_texture.height)
-        self.vertices[v_idx + 3] = (px,      py + ph, u,       0.0)
-        self.vertices[v_idx + 4] = (px + pw, py,      u + u_w, h / self.font_texture.height)
+        self.vertices[v_idx] = (px, py + ph, u, 0.0)
+        self.vertices[v_idx + 1] = (px, py, u, h / self.font_texture.height)
+        self.vertices[v_idx + 2] = (px + pw, py, u + u_w, h / self.font_texture.height)
+        self.vertices[v_idx + 3] = (px, py + ph, u, 0.0)
+        self.vertices[v_idx + 4] = (px + pw, py, u + u_w, h / self.font_texture.height)
         self.vertices[v_idx + 5] = (px + pw, py + ph, u + u_w, 0.0)
 
         self.char_count += 1
