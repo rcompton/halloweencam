@@ -45,7 +45,7 @@ def test_mediapipe_segmenter_read_frame_and_mask(mock_mp, mock_video_capture):
 
 @patch("ghoulfluids.segmentation.YOLO")
 def test_yolo_segmenter_init(mock_yolo, mock_video_capture):
-    segmenter = YOLOSegmenter(0, 1920, 1080, "yolov8n-seg.pt")
+    segmenter = YOLOSegmenter(0, 1920, 1080, "yolov8n-seg.pt", 640, 480)
     assert segmenter.cap == mock_video_capture
     mock_yolo.assert_called_once_with("yolov8n-seg.pt")
 
@@ -63,7 +63,7 @@ def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture):
     mock_results[0].masks = mock_mask
     mock_model.return_value = mock_results
 
-    segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt")
+    segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt", 640, 480)
     frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
 
     assert frame is not None
@@ -77,7 +77,7 @@ def test_yolo_segmenter_read_frame_no_mask(mock_yolo, mock_video_capture):
     mock_model = mock_yolo.return_value
     mock_model.return_value = []  # No results
 
-    segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt")
+    segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt", 640, 480)
     frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
 
     assert frame is not None
