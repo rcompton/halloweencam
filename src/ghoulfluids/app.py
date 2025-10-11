@@ -127,9 +127,15 @@ def main(argv=None):
 
     sim = FluidSim(ctx, cfg)
 
+    # Use fixed segmentation dimensions if provided, otherwise use simulation dimensions.
+    seg_w = cfg.seg_width if cfg.seg_width is not None else sim.sim_w
+    seg_h = cfg.seg_height if cfg.seg_height is not None else sim.sim_h
+
     if cfg.segmenter == "yolo":
         logger.info("Using YOLO segmenter")
-        seg = YOLOSegmenter(cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model)
+        seg = YOLOSegmenter(
+            cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model, seg_w, seg_h
+        )
     elif cfg.segmenter == "mediapipe":
         logger.info("Using MediaPipe segmenter")
         seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)

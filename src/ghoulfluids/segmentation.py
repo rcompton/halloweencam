@@ -65,7 +65,15 @@ class MediaPipeSegmenter:
 
 
 class YOLOSegmenter:
-    def __init__(self, camera_index: int, width: int, height: int, model_name: str):
+    def __init__(
+        self,
+        camera_index: int,
+        width: int,
+        height: int,
+        model_name: str,
+        seg_w: int,
+        seg_h: int,
+    ):
         self.profiler = get_profiler()
         self.cap = cv2.VideoCapture(camera_index)
         if not self.cap.isOpened():
@@ -74,6 +82,8 @@ class YOLOSegmenter:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         self.model = YOLO(model_name)
+        self.seg_w = seg_w
+        self.seg_h = seg_h
         if torch.cuda.is_available():
             self.device = "cuda"
         else:
@@ -118,7 +128,10 @@ class YOLOSegmenter:
 
         with self.profiler.record("yolo_inference"):
             results = self.model(
-                input_tensor, classes=[0], verbose=False
+                input_tensor,
+                classes=[0],
+                verbose=False,
+                imgsz=(self.seg_h, self.seg_w),
             )  # class 0 is 'person'
 
         with self.profiler.record("yolo_postprocess"):

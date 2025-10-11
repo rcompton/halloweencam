@@ -29,22 +29,15 @@ class FluidSim:
         logger = get_logger(__name__)
         self.profiler = get_profiler()
 
-        if cfg.seg_width is not None and cfg.seg_height is not None:
-            self.sim_w = cfg.seg_width
-            self.sim_h = cfg.seg_height
-            logger.info(
-                f"Using fixed segmentation dimensions: {self.sim_w}x{self.sim_h}"
-            )
-        else:
-            self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
-            self.sim_h = max(32, int(cfg.height * cfg.sim_scale))
+        self.sim_w = max(32, int(cfg.width * cfg.sim_scale))
+        self.sim_h = max(32, int(cfg.height * cfg.sim_scale))
 
-            max_dim = max(self.sim_w, self.sim_h)
-            if max_dim > cfg.sim_max_dim:
-                s = cfg.sim_max_dim / float(max_dim)
-                self.sim_w = max(32, int(self.sim_w * s))
-                self.sim_h = max(32, int(self.sim_h * s))
-            logger.info(f"Calculated simulation dimensions: {self.sim_w}x{self.sim_h}")
+        max_dim = max(self.sim_w, self.sim_h)
+        if max_dim > cfg.sim_max_dim:
+            s = cfg.sim_max_dim / float(max_dim)
+            self.sim_w = max(32, int(self.sim_w * s))
+            self.sim_h = max(32, int(self.sim_h * s))
+        logger.info(f"Calculated simulation dimensions: {self.sim_w}x{self.sim_h}")
 
         self.texel = (1.0 / self.sim_w, 1.0 / self.sim_h)
 
