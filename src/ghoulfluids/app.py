@@ -109,15 +109,15 @@ def main(argv=None):
 
     def _linux_gl_hint():
         if sys.platform.startswith("linux"):
-            have_gl = shutil.which("glxinfo") is not None
-            return (
-                "Linux OpenGL loaders not found.\n"
-                "Install the dev libraries:\n"
-                "  sudo apt install -y libgl1-mesa-dev libegl1-mesa-dev libglvnd-dev mesa-utils\n"
-                "Then re-run, or create symlinks:\n"
-                "  sudo ln -s /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/local/lib/libEGL.so && \\\n"
-                "  sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1  /usr/local/lib/libGL.so && sudo ldconfig\n"
-            )
+            if shutil.which("glxinfo") is None:
+                return (
+                    "Linux OpenGL loaders not found.\n"
+                    "Install the dev libraries:\n"
+                    "  sudo apt install -y libgl1-mesa-dev libegl1-mesa-dev libglvnd-dev mesa-utils\n"
+                    "Then re-run, or create symlinks:\n"
+                    "  sudo ln -s /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/local/lib/libEGL.so && \\\n"
+                    "  sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1  /usr/local/lib/libGL.so && sudo ldconfig\n"
+                )
 
     try:
         ctx = moderngl.create_context()
