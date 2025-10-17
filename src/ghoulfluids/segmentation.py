@@ -142,25 +142,36 @@ class YOLOSegmenter:
             if not results or not results[0].masks:
                 return frame, cam_rgb_flipped, None, 0.0
 
-            # Combine masks for all detected persons
-            combined_mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=np.float32)
-            for mask_tensor in results[0].masks.data:
-                mask_np = mask_tensor.cpu().numpy()
-                # The mask might be smaller than the frame, resize it
-                if mask_np.shape != (frame.shape[0], frame.shape[1]):
-                    mask_np = cv2.resize(mask_np, (frame.shape[1], frame.shape[0]))
-                combined_mask = np.maximum(combined_mask, mask_np)
+            # Combine masks at their native resolution from the model
+            masks = results[0].masks.data
+            if len(masks) > 0:
+                # Start with the first mask and add the others
+                combined_mask_native = masks[0].cpu().numpy()
+                for i in range(1, len(masks)):
+                    combined_mask_native = np.maximum(
+                        combined_mask_native, masks[i].cpu().numpy()
+                    )
+            else:
+                combined_mask_native = np.zeros(
+                    (self.seg_h, self.seg_w), dtype=np.float32
+                )
 
-            if combined_mask.max() == 0:
+            if combined_mask_native.max() == 0:
                 return frame, cam_rgb_flipped, None, 0.0
 
         m_big = cv2.resize(
-            combined_mask, (win_w, win_h), interpolation=cv2.INTER_LINEAR
+            combined_mask_native.astype(np.float32),
+            (win_w, win_h),
+            interpolation=cv2.INTER_LINEAR,
         )
         area = float((m_big > 0.30).mean())
 
         m_small = cv2.flip(
-            cv2.resize(combined_mask, (sim_w, sim_h), interpolation=cv2.INTER_LINEAR),
+            cv2.resize(
+                combined_mask_native.astype(np.float32),
+                (sim_w, sim_h),
+                interpolation=cv2.INTER_LINEAR,
+            ),
             0,
         )
         return frame, cam_rgb_flipped, m_small, area

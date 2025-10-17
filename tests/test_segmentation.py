@@ -131,3 +131,36 @@ def test_app_main_segmenter_selection(
     mock_mp.assert_not_called()
     mock_yolo.assert_called()
     mock_yolo.return_value.read_frame_and_mask.assert_called()
+
+
+@patch("ghoulfluids.segmentation.YOLO")
+def test_yolo_segmenter_mask_resize(mock_yolo, mock_video_capture):
+    """
+    Verify that the output mask is resized to the simulation dimensions (sim_w, sim_h)
+    and not the segmentation dimensions (seg_w, seg_h) or the window dimensions.
+    """
+    mock_model = mock_yolo.return_value
+
+    # Mock YOLO model output - a mask of the same size as the model input
+    mock_mask_data = np.ones((240, 320), dtype=np.float32)
+    mock_mask_tensor = MagicMock()
+    mock_mask_tensor.cpu().numpy.return_value = mock_mask_data
+
+    mock_masks = MagicMock()
+    mock_masks.data = [mock_mask_tensor]
+
+    mock_results = [MagicMock()]
+    mock_results[0].masks = mock_masks
+    mock_model.return_value = mock_results
+
+    # Use distinct dimensions for each component
+    win_w, win_h = 1280, 720
+    seg_w, seg_h = 320, 240
+    sim_w, sim_h = 160, 120
+
+    segmenter = YOLOSegmenter(0, win_w, win_h, "yolov8n-seg.pt", seg_w, seg_h)
+    _, _, mask, _ = segmenter.read_frame_and_mask(sim_w, sim_h, win_w, win_h)
+
+    assert mask is not None
+    # The final mask should be flipped vertically for OpenGL, hence (sim_h, sim_w)
+    assert mask.shape == (sim_h, sim_w)
