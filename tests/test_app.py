@@ -80,3 +80,29 @@ def test_app_main_debug_mode(mock_glfw, mock_moderngl, mock_segmenters):
         # Check that the render method is called
         instance = mock_overlay.return_value
         assert instance.render.call_count > 0
+
+
+def test_app_debug_toggle_hotkey(mock_glfw, mock_moderngl, mock_segmenters):
+    """Test that the debug overlay can be toggled with the 'D' key."""
+
+    def get_key_side_effect(win, key):
+        # Simulate a 'D' press on the second frame. The main loop iterates twice
+        # based on the window_should_close mock. The key checks happen after
+        # poll_events, so we check its call count.
+        if key == mock_glfw.KEY_D and mock_glfw.poll_events.call_count == 2:
+            return mock_glfw.PRESS
+        # For all other keys, and on all other frames, return RELEASE.
+        return mock_glfw.RELEASE
+
+    mock_glfw.get_key.side_effect = get_key_side_effect
+
+    with patch("ghoulfluids.app.DebugOverlay") as mock_overlay:
+        # start with debug mode off, so the overlay is only created after the hotkey
+        app.main([])
+
+        # --- verify ---
+        # check that the DebugOverlay was instantiated
+        mock_overlay.assert_called_once()
+        # check that the render method was called once (on the second frame)
+        instance = mock_overlay.return_value
+        assert instance.render.call_count == 1

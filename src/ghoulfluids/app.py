@@ -145,8 +145,6 @@ def main(argv=None):
     ambient = AmbientController(cfg, seed=42)
 
     debug_overlay = None
-    if cfg.debug:
-        debug_overlay = DebugOverlay(ctx, cfg)
 
     # ---- palette cycle state ----
     N_PALETTES = 6  # keep in sync with shader list above
@@ -166,7 +164,9 @@ def main(argv=None):
     log_interval = 1.0  # seconds
     time_since_log = 0.0
 
-    logger.info("SPACE pause  C clear  P palette  V toggle split/fullscreen  ESC quit")
+    logger.info(
+        "SPACE pause  C clear  P palette  V toggle split/fullscreen  D toggle debug  ESC quit"
+    )
 
     profiler = get_profiler()
     try:
@@ -205,6 +205,9 @@ def main(argv=None):
                     time.sleep(0.12)
                 if glfw.get_key(win, glfw.KEY_V) == glfw.PRESS:
                     split_view = not split_view
+                    time.sleep(0.12)
+                if glfw.get_key(win, glfw.KEY_D) == glfw.PRESS:
+                    cfg.debug = not cfg.debug
                     time.sleep(0.12)
 
                 # --- Time delta ---
@@ -283,7 +286,11 @@ def main(argv=None):
                     ctx.screen.use()
                     sim.render_split(split_view)
 
-                    if debug_overlay:
+                    if cfg.debug:
+                        # lazy init
+                        if debug_overlay is None:
+                            debug_overlay = DebugOverlay(ctx, cfg)
+
                         # --- calculate FPS ---
                         fps = 1.0 / actual_dt
                         frame_t_ms = actual_dt * 1000.0
