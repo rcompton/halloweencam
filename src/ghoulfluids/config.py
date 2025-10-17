@@ -46,7 +46,7 @@ class AppConfig:
     # --- Edge Forces (from mask) ---
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        6.0  # Strength of the force pushing away from the mask edge
+        6.5  # Strength of the force pushing away from the mask edge
     )
     edge_tangent_amp: float = 1.5  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
