@@ -17,30 +17,26 @@ class AppConfig:
     dye_fp16: bool = True  # Use half-float (16-bit) for dye textures for performance
 
     # --- Simulation Core ---
-    sim_scale: float = 0.7  # Simulation grid resolution relative to window size
+    sim_scale: float = 0.6  # Simulation grid resolution relative to window size
     sim_max_dim: int = (
         1024  # Maximum dimension (width or height) for the simulation grid
     )
-    substeps: int = 7  # Number of simulation substeps per frame
-    dt_clamp: float = 0.033  # Maximum time delta to prevent instability (in seconds)
+    substeps: int = 10  # Number of simulation substeps per frame
+    dt_clamp: float = 0.03  # Maximum time delta to prevent instability (in seconds)
     jacobi_iters: int = (
         40  # Number of iterations for the Jacobi solver (pressure projection)
     )
-    vorticity_eps: float = 2.6  # Vorticity confinement strength; 0 to disable
-    vel_dissipation: float = 0.998  # Velocity dissipation factor per step (damping)
-    dye_dissipation: float = 0.990  # Dye dissipation factor per step (fading)
+    vorticity_eps: float = 1.9  # Vorticity confinement strength; 0 to disable
+    vel_dissipation: float = 0.997  # Velocity dissipation factor per step (damping)
+    dye_dissipation: float = 0.987  # Dye dissipation factor per step (fading)
 
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
 
     # --- Segmentation ---
     segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
-    seg_width: int | None = (
-        640  # Fixed width for the segmentation mask; overrides sim_scale if set
-    )
-    seg_height: int | None = (
-        384  # Fixed height for the segmentation mask; overrides sim_scale if set
-    )
+    seg_width: int | None = 640  # Fixed width for the segmentation mask
+    seg_height: int | None = 384  # Fixed height for the segmentation mask
     yolo_model: str = "yolo11s-seg.pt"  # Path to the YOLO model file
     mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
     mask_min_area: float = (
@@ -48,11 +44,11 @@ class AppConfig:
     )
 
     # --- Edge Forces (from mask) ---
-    edge_thresh: float = 0.05  # Threshold for detecting edges in the segmentation mask
+    edge_thresh: float = 0.03  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        3.0  # Strength of the force pushing away from the mask edge
+        3.5  # Strength of the force pushing away from the mask edge
     )
-    edge_tangent_amp: float = 0.4  # Strength of the force moving along the mask edge
+    edge_tangent_amp: float = 0.5  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
