@@ -307,6 +307,7 @@ def main(argv=None):
                         lines.append("--------------------")
                         # config settings
                         lines.append(f"Segmenter: {cfg.segmenter}")
+                        lines.append(f"Seg Res: {seg_w}x{seg_h}")
                         lines.append(f"Sim Res: {sim.sim_w}x{sim.sim_h}")
                         lines.append(f"Dye Res: {sim.dye_w}x{sim.dye_h}")
 
