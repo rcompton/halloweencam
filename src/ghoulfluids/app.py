@@ -67,6 +67,13 @@ def main(argv=None):
         action="store_true",
         help="Show debug overlay.",
     )
+    p.add_argument(
+        "--fluid-force-mode",
+        type=str,
+        choices=["edges", "full"],
+        default=None,
+        help="How to apply forces from the mask ('edges' or 'full'). Default: from config.",
+    )
     p.set_defaults(debug=False)
     args = p.parse_args(argv)
 
@@ -84,6 +91,8 @@ def main(argv=None):
         cfg.log_file = args.log_file
     if args.debug:
         cfg.debug = True
+    if args.fluid_force_mode is not None:
+        cfg.force_mode = args.fluid_force_mode
 
     # --- logging ---
     setup_logging(cfg.log_level, cfg.log_file)

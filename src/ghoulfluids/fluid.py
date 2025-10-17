@@ -56,6 +56,9 @@ class FluidSim:
         self.prog_maskF = ctx.program(
             vertex_shader=S.VS, fragment_shader=S.FS_MASK_FORCE
         )
+        self.prog_maskF_full = ctx.program(
+            vertex_shader=S.VS, fragment_shader=S.FS_MASK_FORCE_FULL
+        )
         self.prog_maskD = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_MASK_DYE)
         self.prog_show = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SHOW)
         self.prog_cam = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SHOW_CAM)
@@ -75,6 +78,9 @@ class FluidSim:
         self.vao_curl = ctx.simple_vertex_array(self.prog_curl, self.vbo, "in_vert")
         self.vao_vort = ctx.simple_vertex_array(self.prog_vort, self.vbo, "in_vert")
         self.vao_maskF = ctx.simple_vertex_array(self.prog_maskF, self.vbo, "in_vert")
+        self.vao_maskF_full = ctx.simple_vertex_array(
+            self.prog_maskF_full, self.vbo, "in_vert"
+        )
         self.vao_maskD = ctx.simple_vertex_array(self.prog_maskD, self.vbo, "in_vert")
         self.vao_show = ctx.simple_vertex_array(self.prog_show, self.vbo, "in_vert")
         self.vao_cam = ctx.simple_vertex_array(self.prog_cam, self.vbo, "in_vert")
@@ -134,6 +140,8 @@ class FluidSim:
         self.prog_maskF["amp_normal"].value = self.cfg.edge_normal_amp
         self.prog_maskF["amp_tangent"].value = self.cfg.edge_tangent_amp
         self.prog_maskF["use_temporal"].value = 1 if self.cfg.edge_use_temporal else 0
+        self.prog_maskF_full["texel"].value = self.texel
+        self.prog_maskF_full["amp_normal"].value = self.cfg.edge_normal_amp
         self.prog_maskD["texel"].value = (1.0 / self.dye_w, 1.0 / self.dye_h)
         self.prog_maskD["edge_thresh"].value = self.cfg.edge_thresh
         self.prog_maskD["edge_color"].value = (1.0, 0.45, 0.1)
@@ -210,11 +218,17 @@ class FluidSim:
                     self.vel_a.use(location=0)
                     self.mask_curr.use(location=1)
                     self.mask_prev.use(location=2)
-                    self.prog_maskF["vel_in"].value = 0
-                    self.prog_maskF["mask_curr"].value = 1
-                    self.prog_maskF["mask_prev"].value = 2
-                    self.prog_maskF["dt"].value = sdt
-                    self.vao_maskF.render(moderngl.TRIANGLE_STRIP)
+                    if self.cfg.force_mode == "full":
+                        self.prog_maskF_full["vel_in"].value = 0
+                        self.prog_maskF_full["mask_curr"].value = 1
+                        self.prog_maskF_full["dt"].value = sdt
+                        self.vao_maskF_full.render(moderngl.TRIANGLE_STRIP)
+                    else:  # 'edges'
+                        self.prog_maskF["vel_in"].value = 0
+                        self.prog_maskF["mask_curr"].value = 1
+                        self.prog_maskF["mask_prev"].value = 2
+                        self.prog_maskF["dt"].value = sdt
+                        self.vao_maskF.render(moderngl.TRIANGLE_STRIP)
                     self.swap_vel()
 
             # Vorticity
