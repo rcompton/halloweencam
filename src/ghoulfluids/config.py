@@ -13,11 +13,11 @@ class AppConfig:
     # --- Window and Rendering ---
     width: int = 1024  # Initial window width
     height: int = 576  # Initial window height
-    render_scale: float = 0.5  # Dye texture resolution relative to window size
+    render_scale: float = 0.6  # Dye texture resolution relative to window size
     dye_fp16: bool = True  # Use half-float (16-bit) for dye textures for performance
 
     # --- Simulation Core ---
-    sim_scale: float = 0.5  # Simulation grid resolution relative to window size
+    sim_scale: float = 0.6  # Simulation grid resolution relative to window size
     sim_max_dim: int = (
         1024  # Maximum dimension (width or height) for the simulation grid
     )
@@ -30,7 +30,7 @@ class AppConfig:
     vel_dissipation: float = 0.999  # Velocity dissipation factor per step (damping)
     dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
     background_velocity: float = (
-        0.03  # Constant upward velocity, scaled by sim height, for a fire-like effect
+        0.02  # Constant upward velocity, scaled by sim height, for a fire-like effect
     )
 
     # --- Camera ---
@@ -50,9 +50,9 @@ class AppConfig:
     force_mode: str = "edges"  # How to apply forces from the mask ('edges' or 'full')
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        5.5  # Strength of the force pushing away from the mask edge
+        3.5  # Strength of the force pushing away from the mask edge
     )
-    edge_tangent_amp: float = 2.2  # Strength of the force moving along the mask edge
+    edge_tangent_amp: float = 2.5  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
