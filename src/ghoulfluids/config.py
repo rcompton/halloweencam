@@ -30,7 +30,7 @@ class AppConfig:
     vel_dissipation: float = 0.999  # Velocity dissipation factor per step (damping)
     dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
     background_velocity: float = (
-        0.1  # Constant upward velocity, scaled by sim height, for a fire-like effect
+        0.03  # Constant upward velocity, scaled by sim height, for a fire-like effect
     )
 
     # --- Camera ---
@@ -50,13 +50,13 @@ class AppConfig:
     force_mode: str = "full"  # How to apply forces from the mask ('edges' or 'full')
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        6.5  # Strength of the force pushing away from the mask edge
+        5.5  # Strength of the force pushing away from the mask edge
     )
-    edge_tangent_amp: float = 1.5  # Strength of the force moving along the mask edge
+    edge_tangent_amp: float = 2.2  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
-    edge_dye_strength: float = 0.05  # How much dye to emit from the mask edges
+    edge_dye_strength: float = 0.06  # How much dye to emit from the mask edges
 
     # --- Ambient (when no mask is detected) ---
     ambient_emitters: int = 30  # Number of drifting wisps to simulate
