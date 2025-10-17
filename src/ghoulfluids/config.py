@@ -37,7 +37,7 @@ class AppConfig:
     segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
     seg_width: int | None = 640  # Fixed width for the segmentation mask
     seg_height: int | None = 384  # Fixed height for the segmentation mask
-    yolo_model: str = "yolo11s-seg.engine"  # Path to the YOLO model file
+    yolo_model: str = "yolo11s-seg.pt"  # Path to the YOLO model file
     mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
     mask_min_area: float = (
         0.01  # Minimum area fraction for a mask to be considered valid
