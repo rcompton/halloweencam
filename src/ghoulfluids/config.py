@@ -13,11 +13,11 @@ class AppConfig:
     # --- Window and Rendering ---
     width: int = 1024  # Initial window width
     height: int = 576  # Initial window height
-    render_scale: float = 0.7  # Dye texture resolution relative to window size
+    render_scale: float = 0.5  # Dye texture resolution relative to window size
     dye_fp16: bool = True  # Use half-float (16-bit) for dye textures for performance
 
     # --- Simulation Core ---
-    sim_scale: float = 0.6  # Simulation grid resolution relative to window size
+    sim_scale: float = 0.5  # Simulation grid resolution relative to window size
     sim_max_dim: int = (
         1024  # Maximum dimension (width or height) for the simulation grid
     )
