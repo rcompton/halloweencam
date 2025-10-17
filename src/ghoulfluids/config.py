@@ -27,8 +27,8 @@ class AppConfig:
         40  # Number of iterations for the Jacobi solver (pressure projection)
     )
     vorticity_eps: float = 1.9  # Vorticity confinement strength; 0 to disable
-    vel_dissipation: float = 0.996  # Velocity dissipation factor per step (damping)
-    dye_dissipation: float = 0.995  # Dye dissipation factor per step (fading)
+    vel_dissipation: float = 0.999  # Velocity dissipation factor per step (damping)
+    dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
 
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
@@ -37,7 +37,7 @@ class AppConfig:
     segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
     seg_width: int | None = 640  # Fixed width for the segmentation mask
     seg_height: int | None = 384  # Fixed height for the segmentation mask
-    yolo_model: str = "yolo11s-seg.pt"  # Path to the YOLO model file
+    yolo_model: str = "yolo11s-seg.engine"  # Path to the YOLO model file
     mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
     mask_min_area: float = (
         0.01  # Minimum area fraction for a mask to be considered valid
