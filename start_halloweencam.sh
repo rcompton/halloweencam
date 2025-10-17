@@ -30,6 +30,6 @@ pip install -e .
 echo "Launching ghoulfluids GUI..."
 # Explicitly set the display for GUI applications
 export DISPLAY=:0
-ghoulfluids --split --fluid-force-mode=full --fullscreen --debug --segmenter='yolo' --log-file="$LOG_FILE" --seg-width=640 --seg-height=384
+ghoulfluids --split --fluid-force-mode='edges' --fullscreen --debug --segmenter='yolo' --log-file="$LOG_FILE" --seg-width=640 --seg-height=384
 
 echo "Script finished executing ghoulfluids command at $(date)."

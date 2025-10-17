@@ -47,7 +47,7 @@ class AppConfig:
     )
 
     # --- Edge Forces (from mask) ---
-    force_mode: str = "full"  # How to apply forces from the mask ('edges' or 'full')
+    force_mode: str = "edges"  # How to apply forces from the mask ('edges' or 'full')
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
         5.5  # Strength of the force pushing away from the mask edge
