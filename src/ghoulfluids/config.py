@@ -30,7 +30,7 @@ class AppConfig:
     vel_dissipation: float = 0.999  # Velocity dissipation factor per step (damping)
     dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
     background_velocity: float = (
-        0.02  # Constant upward velocity, scaled by sim height, for a fire-like effect
+        0.05  # Constant upward velocity, scaled by sim height, for a fire-like effect
     )
 
     # --- Camera ---
@@ -47,7 +47,7 @@ class AppConfig:
     )
 
     # --- Edge Forces (from mask) ---
-    force_mode: str = "edges"  # How to apply forces from the mask ('edges' or 'full')
+    force_mode: str = "full"  # How to apply forces from the mask ('edges' or 'full')
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
         3.5  # Strength of the force pushing away from the mask edge
