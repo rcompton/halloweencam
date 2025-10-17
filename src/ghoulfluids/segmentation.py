@@ -124,7 +124,11 @@ class YOLOSegmenter:
             )
 
         with self.profiler.record("yolo_preprocess"):
-            input_tensor = self._preprocess_image(cam_rgb)
+            # Resize for the model input
+            model_input_frame = cv2.resize(
+                cam_rgb, (self.seg_w, self.seg_h), interpolation=cv2.INTER_LINEAR
+            )
+            input_tensor = self._preprocess_image(model_input_frame)
 
         with self.profiler.record("yolo_inference"):
             results = self.model(
