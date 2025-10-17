@@ -16,7 +16,7 @@ echo "Changing directory to $PROJECT_DIR"
 cd "$PROJECT_DIR" || { echo "ERROR: Failed to cd into project directory. Exiting."; exit 1; }
 
 echo "Waiting 10 seconds for system to be ready..."
-sleep 10
+sleep 2
 
 echo "Running git pull..."
 git pull
