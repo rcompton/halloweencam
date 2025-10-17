@@ -34,6 +34,17 @@ void main(){
 }
 """
 
+FS_FORCE = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D field;
+uniform vec3 value;
+void main(){
+    vec4 base = texture(field, uv);
+    fragColor = base + vec4(value, 0.0);
+}
+"""
+
 FS_DIVERGENCE = """
 #version 330
 in vec2 uv; out vec4 fragColor;

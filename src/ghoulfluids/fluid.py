@@ -47,6 +47,7 @@ class FluidSim:
         # programs / VAOs
         self.prog_adv = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_ADVECT)
         self.prog_splat = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SPLAT)
+        self.prog_force = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_FORCE)
         self.prog_div = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_DIVERGENCE)
         self.prog_jac = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_JACOBI)
         self.prog_grad = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_GRADIENT)
@@ -67,6 +68,7 @@ class FluidSim:
         self.vbo = fullscreen_quad(ctx)
         self.vao_adv = ctx.simple_vertex_array(self.prog_adv, self.vbo, "in_vert")
         self.vao_splat = ctx.simple_vertex_array(self.prog_splat, self.vbo, "in_vert")
+        self.vao_force = ctx.simple_vertex_array(self.prog_force, self.vbo, "in_vert")
         self.vao_div = ctx.simple_vertex_array(self.prog_div, self.vbo, "in_vert")
         self.vao_jac = ctx.simple_vertex_array(self.prog_jac, self.vbo, "in_vert")
         self.vao_grad = ctx.simple_vertex_array(self.prog_grad, self.vbo, "in_vert")
@@ -175,6 +177,20 @@ class FluidSim:
     def step(self, dt: float, have_mask: bool):
         sdt = dt / self.cfg.substeps
         for _ in range(self.cfg.substeps):
+            # Background velocity
+            if self.cfg.background_velocity > 0.0:
+                with self.profiler.record("background_v"):
+                    self.fbo_vel_b.use()
+                    self.vel_a.use(location=0)
+                    self.prog_force["field"].value = 0
+                    self.prog_force["value"].value = (
+                        0.0,
+                        self.cfg.background_velocity * sdt,
+                        0.0,
+                    )
+                    self.vao_force.render(moderngl.TRIANGLE_STRIP)
+                    self.swap_vel()
+
             # Advect velocity
             with self.profiler.record("advect_v"):
                 self.fbo_vel_b.use()

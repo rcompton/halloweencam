@@ -29,6 +29,9 @@ class AppConfig:
     vorticity_eps: float = 1.9  # Vorticity confinement strength; 0 to disable
     vel_dissipation: float = 0.999  # Velocity dissipation factor per step (damping)
     dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
+    background_velocity: float = (
+        0.1  # Constant upward velocity, scaled by sim height, for a fire-like effect
+    )
 
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
