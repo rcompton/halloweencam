@@ -94,6 +94,29 @@ void main(){
 }
 """
 
+FS_MASK_FORCE_FULL = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D vel_in;
+uniform sampler2D mask_curr;
+uniform vec2 texel;
+uniform float dt;
+uniform float amp_normal;
+void main(){
+    float M = texture(mask_curr, uv).r;
+    vec2 v = texture(vel_in, uv).xy;
+    if (M > 0.01){
+        float Mx = texture(mask_curr, uv + vec2(texel.x,0)).r - texture(mask_curr, uv - vec2(texel.x,0)).r;
+        float My = texture(mask_curr, uv + vec2(0,texel.y)).r - texture(mask_curr, uv - vec2(0,texel.y)).r;
+        vec2 g = 0.5*vec2(Mx,My);
+        vec2 n = normalize(g + 1e-6);
+        vec2 add = amp_normal * n * M;
+        v += dt * add;
+    }
+    fragColor = vec4(v,0,1);
+}
+"""
+
 FS_CURL = """
 #version 330
 in vec2 uv; out vec4 fragColor;
