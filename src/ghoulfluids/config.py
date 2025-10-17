@@ -41,7 +41,7 @@ class AppConfig:
     seg_height: int | None = (
         384  # Fixed height for the segmentation mask; overrides sim_scale if set
     )
-    yolo_model: str = "yolo11s-seg.pt"  # Path to the YOLO model file
+    yolo_model: str = "yolo11s-seg.engine"  # Path to the YOLO model file
     mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
     mask_min_area: float = (
         0.01  # Minimum area fraction for a mask to be considered valid
@@ -50,13 +50,13 @@ class AppConfig:
     # --- Edge Forces (from mask) ---
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        4.7  # Strength of the force pushing away from the mask edge
+        3.7  # Strength of the force pushing away from the mask edge
     )
-    edge_tangent_amp: float = 2.0  # Strength of the force moving along the mask edge
+    edge_tangent_amp: float = 1.0  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
-    edge_dye_strength: float = 0.10  # How much dye to emit from the mask edges
+    edge_dye_strength: float = 0.05  # How much dye to emit from the mask edges
 
     # --- Ambient (when no mask is detected) ---
     ambient_emitters: int = 30  # Number of drifting wisps to simulate
