@@ -48,12 +48,19 @@ def mock_segmenters():
 def test_app_main_defaults(mock_glfw, mock_moderngl, mock_segmenters):
     """Test the main function with default arguments."""
     app.main([])
-    # Check that mediapipe is used by default
-    mock_segmenters["mediapipe"].assert_called_once()
-    mock_segmenters["yolo"].assert_not_called()
+    # Check that yolo is used by default
+    mock_segmenters["yolo"].assert_called_once()
+    mock_segmenters["mediapipe"].assert_not_called()
     # Check that the main loop runs
     assert mock_glfw.poll_events.call_count > 1
     assert mock_glfw.swap_buffers.call_count > 1
+
+
+def test_app_main_mediapipe_segmenter(mock_glfw, mock_moderngl, mock_segmenters):
+    """Test the main function with the MediaPipe segmenter."""
+    app.main(["--segmenter", "mediapipe"])
+    mock_segmenters["mediapipe"].assert_called_once()
+    mock_segmenters["yolo"].assert_not_called()
 
 
 def test_app_main_yolo_segmenter(mock_glfw, mock_moderngl, mock_segmenters):
