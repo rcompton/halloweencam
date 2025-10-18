@@ -183,7 +183,7 @@ void main(){
             growth = (M - Mp) / max(dt, 1e-4);
             growth = clamp(growth * 0.5 + 0.5, 0.0, 1.0);
         }
-        vec2 add = amp_normal*n*growth;
+        vec2 add = amp_normal*n*growth + amp_tangent*t*growth; // w/ tangent
         add *= smoothstep(edge_thresh, edge_thresh*3.0, gmag);
         v += dt * add;
     }
