@@ -30,7 +30,7 @@ class AppConfig:
     vel_dissipation: float = 0.998  # Velocity dissipation factor per step (damping)
     dye_dissipation: float = 0.994  # Dye dissipation factor per step (fading)
     background_velocity: float = (
-        0.085  # Constant upward velocity, scaled by sim height, for a fire-like effect
+        0.095  # Constant upward velocity, scaled by sim height, for a fire-like effect
     )
 
     # --- Camera ---
