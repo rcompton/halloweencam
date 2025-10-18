@@ -21,16 +21,16 @@ class AppConfig:
     sim_max_dim: int = (
         1024  # Maximum dimension (width or height) for the simulation grid
     )
-    substeps: int = 10  # Number of simulation substeps per frame
+    substeps: int = 12  # Number of simulation substeps per frame
     dt_clamp: float = 0.03  # Maximum time delta to prevent instability (in seconds)
     jacobi_iters: int = (
-        40  # Number of iterations for the Jacobi solver (pressure projection)
+        30  # Number of iterations for the Jacobi solver (pressure projection)
     )
-    vorticity_eps: float = 1.9  # Vorticity confinement strength; 0 to disable
-    vel_dissipation: float = 0.999  # Velocity dissipation factor per step (damping)
-    dye_dissipation: float = 0.997  # Dye dissipation factor per step (fading)
+    vorticity_eps: float = 2.6  # Vorticity confinement strength; 0 to disable
+    vel_dissipation: float = 0.998  # Velocity dissipation factor per step (damping)
+    dye_dissipation: float = 0.994  # Dye dissipation factor per step (fading)
     background_velocity: float = (
-        0.1  # Constant upward velocity, scaled by sim height, for a fire-like effect
+        0.085  # Constant upward velocity, scaled by sim height, for a fire-like effect
     )
 
     # --- Camera ---
@@ -38,7 +38,7 @@ class AppConfig:
     mirror: bool = True  # Mirror the camera feed horizontally
 
     # --- Segmentation ---
-    segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
+    segmenter: str = "yolo"  # Segmentation backend ('mediapipe' or 'yolo')
     seg_width: int | None = 640  # Fixed width for the segmentation mask
     seg_height: int | None = 384  # Fixed height for the segmentation mask
     yolo_model: str = "yolo11s-seg.pt"  # Path to the YOLO model file
@@ -52,13 +52,13 @@ class AppConfig:
     force_mode: str = "edges"  # How to apply forces from the mask ('edges' or 'full')
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        3.5  # Strength of the force pushing away from the mask edge
+        14.5  # Strength of the force pushing away from the mask edge
     )
-    edge_tangent_amp: float = 2.5  # Strength of the force moving along the mask edge
+    edge_tangent_amp: float = 5.5  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
-    edge_dye_strength: float = 0.06  # How much dye to emit from the mask edges
+    edge_dye_strength: float = 0.08  # How much dye to emit from the mask edges
 
     # --- Ambient (when no mask is detected) ---
     ambient_emitters: int = 30  # Number of drifting wisps to simulate
