@@ -9,9 +9,10 @@ from .profiler import get_profiler
 
 
 class MediaPipeSegmenter:
-    def __init__(self, camera_index: int, width: int, height: int):
+    def __init__(self, camera_index: int, width: int, height: int, mirror: bool = True):
         self.profiler = get_profiler()
         self.cap = cv2.VideoCapture(camera_index)
+        self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -29,8 +30,8 @@ class MediaPipeSegmenter:
         if not ok:
             return None, None, None, 0.0
 
-        frame = cv2.flip(frame, 1)  # mirror for user-view
-        # segmentation.py (inside read_frame_and_mask)
+        if self.mirror:
+            frame = cv2.flip(frame, 1)
         cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
@@ -73,9 +74,12 @@ class YOLOSegmenter:
         model_name: str,
         seg_w: int,
         seg_h: int,
+        device: str = "cuda",
+        mirror: bool = True,
     ):
         self.profiler = get_profiler()
         self.cap = cv2.VideoCapture(camera_index)
+        self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -84,10 +88,7 @@ class YOLOSegmenter:
         self.model = YOLO(model_name)
         self.seg_w = seg_w
         self.seg_h = seg_h
-        if torch.cuda.is_available():
-            self.device = "cuda"
-        else:
-            self.device = "cpu"
+        self.device = device
 
     def _preprocess_image(self, img: np.ndarray) -> torch.Tensor:
         """Converts a NumPy image to a pre-processed torch tensor."""
@@ -113,7 +114,8 @@ class YOLOSegmenter:
         if not ok:
             return None, None, None, 0.0
 
-        frame = cv2.flip(frame, 1)  # mirror for user-view
+        if self.mirror:
+            frame = cv2.flip(frame, 1)
         cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 

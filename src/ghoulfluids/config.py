@@ -35,12 +35,14 @@ class AppConfig:
 
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
+    mirror: bool = True  # Mirror the camera feed horizontally
 
     # --- Segmentation ---
     segmenter: str = "mediapipe"  # Segmentation backend ('mediapipe' or 'yolo')
     seg_width: int | None = 640  # Fixed width for the segmentation mask
     seg_height: int | None = 384  # Fixed height for the segmentation mask
     yolo_model: str = "yolo11s-seg.pt"  # Path to the YOLO model file
+    yolo_device: str = "cuda"  # Device for YOLO inference ('cuda', 'cpu', 'mps')
     mask_threshold: float = 0.25  # Confidence threshold for segmentation masks
     mask_min_area: float = (
         0.01  # Minimum area fraction for a mask to be considered valid

@@ -12,8 +12,13 @@ dependencies = [
   "mediapipe>=0.10.14",
   "ultralytics>=8.0.0",
   "freetype-py>=2.4.0",
+]
+
+[project.optional-dependencies]
+test = [
   "pytest>=7.4",
   "pytest-cov>=4.1",
+  "ruff>=0.1.0",
 ]
 
 [project.scripts]
