@@ -33,6 +33,13 @@ def main(argv=None):
         help="Open in fullscreen on the primary monitor.",
     )
     p.add_argument(
+        "--camera-id",
+        type=int,
+        default=None,
+        help="Camera device index.",
+    )
+    p.add_argument("--no-mirror", action="store_true", help="Do not mirror camera feed.")
+    p.add_argument(
         "--render-scale",
         type=float,
         help="Dye render scale (0.3–1.0). Default from config.",
@@ -43,6 +50,18 @@ def main(argv=None):
         choices=["mediapipe", "yolo"],
         default=None,
         help="Segmentation backend (mediapipe, yolo). Default: from config.",
+    )
+    p.add_argument(
+        "--yolo-model",
+        type=str,
+        default=None,
+        help="YOLO model file.",
+    )
+    p.add_argument(
+        "--yolo-device",
+        type=str,
+        default=None,
+        help="YOLO device (e.g., 'cpu', 'cuda', 'mps').",
     )
     p.add_argument(
         "--seg-width",
@@ -79,6 +98,7 @@ def main(argv=None):
 
     # --- config ---
     cfg = AppConfig()
+    # Update config from CLI args
     if args.render_scale is not None:
         cfg.render_scale = max(0.3, min(1.0, args.render_scale))
     if args.segmenter is not None:
@@ -93,6 +113,14 @@ def main(argv=None):
         cfg.debug = True
     if args.fluid_force_mode is not None:
         cfg.force_mode = args.fluid_force_mode
+    if args.camera_id is not None:
+        cfg.camera_index = args.camera_id
+    if args.no_mirror:
+        cfg.mirror = False
+    if args.yolo_model is not None:
+        cfg.yolo_model = args.yolo_model
+    if args.yolo_device is not None:
+        cfg.yolo_device = args.yolo_device
 
     # --- logging ---
     setup_logging(cfg.log_level, cfg.log_file)
@@ -143,11 +171,20 @@ def main(argv=None):
     if cfg.segmenter == "yolo":
         logger.info("Using YOLO segmenter")
         seg = YOLOSegmenter(
-            cfg.camera_index, cfg.width, cfg.height, cfg.yolo_model, seg_w, seg_h
+            cfg.camera_index,
+            cfg.width,
+            cfg.height,
+            cfg.yolo_model,
+            seg_w,
+            seg_h,
+            device=cfg.yolo_device,
+            mirror=cfg.mirror,
         )
     elif cfg.segmenter == "mediapipe":
         logger.info("Using MediaPipe segmenter")
-        seg = MediaPipeSegmenter(cfg.camera_index, cfg.width, cfg.height)
+        seg = MediaPipeSegmenter(
+            cfg.camera_index, cfg.width, cfg.height, mirror=cfg.mirror
+        )
     else:
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
 
