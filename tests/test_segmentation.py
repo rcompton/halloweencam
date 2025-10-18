@@ -105,12 +105,12 @@ def test_app_main_segmenter_selection(
     mock_mp.return_value.read_frame_and_mask.return_value = mock_return
     mock_yolo.return_value.read_frame_and_mask.return_value = mock_return
 
-    # Test default (mediapipe)
+    # Test default (yolo)
     with patch.object(mock_glfw, "window_should_close", side_effect=[False, True]):
         main([])
-    mock_mp.assert_called()
-    mock_yolo.assert_not_called()
-    mock_mp.return_value.read_frame_and_mask.assert_called()
+    mock_mp.assert_not_called()
+    mock_yolo.assert_called()
+    mock_yolo.return_value.read_frame_and_mask.assert_called()
 
     mock_mp.reset_mock()
     mock_yolo.reset_mock()
