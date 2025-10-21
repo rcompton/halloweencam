@@ -116,20 +116,24 @@ class YOLOSegmenter:
         Returns (frame_bgr, cam_rgb_flippedV, mask_small_flippedV, mask_area_frac)
         mask_small matches (sim_w,sim_h), both flipped vertically for GL UV convention.
         """
-        ok, frame = self.cap.read()
+        with self.profiler.record("cam_read"):
+            ok, frame = self.cap.read()
         if not ok:
             return None, None, None, 0.0
 
-        if self.mirror:
-            frame = cv2.flip(frame, 1)
-        cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        cam_rgb_flipped = cv2.flip(cam_rgb, 0)
+        with self.profiler.record("cam_flip"):
+            if self.mirror:
+                frame = cv2.flip(frame, 1)
+        with self.profiler.record("cam_cvtColor"):
+            cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
         # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-            cam_rgb_flipped = cv2.resize(
-                cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
-            )
+        with self.profiler.record("cam_resize"):
+            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
+                cam_rgb_flipped = cv2.resize(
+                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
+                )
 
         with self.profiler.record("yolo_preprocess"):
             # Resize for the model input
