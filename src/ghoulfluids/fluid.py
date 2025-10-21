@@ -44,6 +44,13 @@ class FluidSim:
         self.dye_w = max(32, int(cfg.width * cfg.render_scale))
         self.dye_h = max(32, int(cfg.height * cfg.render_scale))
 
+        max_dim = max(self.dye_w, self.dye_h)
+        if max_dim > cfg.dye_max_dim:
+            s = cfg.dye_max_dim / float(max_dim)
+            self.dye_w = max(32, int(self.dye_w * s))
+            self.dye_h = max(32, int(self.dye_h * s))
+        logger.info(f"Calculated dye dimensions: {self.dye_w}x{self.dye_h}")
+
         # programs / VAOs
         self.prog_adv = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_ADVECT)
         self.prog_splat = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SPLAT)
