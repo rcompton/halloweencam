@@ -20,6 +20,18 @@ Built with **ModernGL + GLFW + OpenCV + MediaPipe**. Optional split-screen shows
 
 ---
 
+## How it works
+
+The fluid simulation is based on Jos Stam's stable fluids method, a technique that allows for real-time, unconditionally stable solutions to the Navier-Stokes equations (which describe fluid flow). While a full explanation is out of scope for this README, the key steps are:
+
+1.  **Advection**: Move the fluid's velocity and dye quantities along the existing velocity field.
+2.  **External Forces**: Apply forces to the fluid, such as those from the segmentation mask's edges.
+3.  **Projection**: This is the crucial step for stability. It makes the velocity field incompressible (divergence-free), meaning the fluid doesn't spontaneously appear or disappear. This is done by solving a Poisson problem for pressure, which is handled on the GPU using a Jacobi solver.
+
+This implementation is done entirely on the GPU using GLSL shaders for maximum performance.
+
+---
+
 ## Quick start
 
 ```bash
