@@ -39,6 +39,9 @@ class AppConfig:
     # --- Camera ---
     camera_index: int = 0  # Index of the camera to use (e.g., 0 for /dev/video0)
     mirror: bool = True  # Mirror the camera feed horizontally
+    cam_res_scale: float = (
+        1.2  # Capture resolution scale relative to segmentation resolution
+    )
 
     # --- Segmentation ---
     segmenter: str = "yolo"  # Segmentation backend ('mediapipe' or 'yolo')

@@ -168,12 +168,18 @@ def main(argv=None):
     seg_w = cfg.seg_width if cfg.seg_width is not None else sim.sim_w
     seg_h = cfg.seg_height if cfg.seg_height is not None else sim.sim_h
 
+    # --- Camera ---
+    # Set camera resolution based on segmentation dimensions to avoid high-res overhead.
+    aspect_ratio = cfg.width / cfg.height
+    cam_h = int(seg_h * cfg.cam_res_scale)
+    cam_w = int(cam_h * aspect_ratio)
+
     if cfg.segmenter == "yolo":
         logger.info("Using YOLO segmenter")
         seg = YOLOSegmenter(
             cfg.camera_index,
-            cfg.width,
-            cfg.height,
+            cam_w,
+            cam_h,
             cfg.yolo_model,
             seg_w,
             seg_h,
@@ -182,9 +188,7 @@ def main(argv=None):
         )
     elif cfg.segmenter == "mediapipe":
         logger.info("Using MediaPipe segmenter")
-        seg = MediaPipeSegmenter(
-            cfg.camera_index, cfg.width, cfg.height, mirror=cfg.mirror
-        )
+        seg = MediaPipeSegmenter(cfg.camera_index, cam_w, cam_h, mirror=cfg.mirror)
     else:
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
 
