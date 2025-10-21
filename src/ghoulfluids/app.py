@@ -169,10 +169,8 @@ def main(argv=None):
     seg_h = cfg.seg_height if cfg.seg_height is not None else sim.sim_h
 
     # --- Camera ---
-    # Set camera resolution based on segmentation dimensions to avoid high-res overhead.
-    aspect_ratio = cfg.width / cfg.height
-    cam_h = int(seg_h * cfg.cam_res_scale)
-    cam_w = int(cam_h * aspect_ratio)
+    # Set camera resolution to the segmentation dimensions to avoid high-res overhead.
+    cam_w, cam_h = seg_w, seg_h
 
     if cfg.segmenter == "yolo":
         logger.info("Using YOLO segmenter")
