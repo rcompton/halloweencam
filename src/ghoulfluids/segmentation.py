@@ -9,20 +9,14 @@ from .profiler import get_profiler
 
 
 class MediaPipeSegmenter:
-    def __init__(
-        self,
-        camera_index: int,
-        cam_w: int,
-        cam_h: int,
-        mirror: bool = True,
-    ):
+    def __init__(self, camera_index: int, width: int, height: int, mirror: bool = True):
         self.profiler = get_profiler()
         self.cap = cv2.VideoCapture(camera_index)
         self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         mp_seg = mp.solutions.selfie_segmentation
         self.segmenter = mp_seg.SelfieSegmentation(model_selection=0)
@@ -32,8 +26,7 @@ class MediaPipeSegmenter:
         Returns (frame_bgr, cam_rgb_flippedV, mask_small_flippedV, mask_area_frac)
         mask_small matches (sim_w,sim_h), both flipped vertically for GL UV convention.
         """
-        with self.profiler.record("cam_read"):
-            ok, frame = self.cap.read()
+        ok, frame = self.cap.read()
         if not ok:
             return None, None, None, 0.0
 
@@ -76,8 +69,8 @@ class YOLOSegmenter:
     def __init__(
         self,
         camera_index: int,
-        cam_w: int,
-        cam_h: int,
+        width: int,
+        height: int,
         model_name: str,
         seg_w: int,
         seg_h: int,
@@ -89,8 +82,8 @@ class YOLOSegmenter:
         self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         self.model = YOLO(model_name)
         self.seg_w = seg_w
@@ -117,8 +110,7 @@ class YOLOSegmenter:
         Returns (frame_bgr, cam_rgb_flippedV, mask_small_flippedV, mask_area_frac)
         mask_small matches (sim_w,sim_h), both flipped vertically for GL UV convention.
         """
-        with self.profiler.record("cam_read"):
-            ok, frame = self.cap.read()
+        ok, frame = self.cap.read()
         if not ok:
             return None, None, None, 0.0
 
