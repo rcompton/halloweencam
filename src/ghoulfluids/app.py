@@ -172,18 +172,16 @@ def main(argv=None):
         logger.info("Using YOLO segmenter")
         seg = YOLOSegmenter(
             cfg.camera_index,
-            cfg.width,
-            cfg.height,
-            cfg.yolo_model,
             seg_w,
             seg_h,
+            cfg.yolo_model,
             device=cfg.yolo_device,
             mirror=cfg.mirror,
         )
     elif cfg.segmenter == "mediapipe":
         logger.info("Using MediaPipe segmenter")
         seg = MediaPipeSegmenter(
-            cfg.camera_index, cfg.width, cfg.height, mirror=cfg.mirror
+            cfg.camera_index, seg_w, seg_h, mirror=cfg.mirror
         )
     else:
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")

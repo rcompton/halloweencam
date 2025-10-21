@@ -72,8 +72,6 @@ class YOLOSegmenter:
         width: int,
         height: int,
         model_name: str,
-        seg_w: int,
-        seg_h: int,
         device: str = "cuda",
         mirror: bool = True,
     ):
@@ -86,8 +84,8 @@ class YOLOSegmenter:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         self.model = YOLO(model_name)
-        self.seg_w = seg_w
-        self.seg_h = seg_h
+        self.seg_w = width
+        self.seg_h = height
         self.device = device
 
     def _preprocess_image(self, img: np.ndarray) -> torch.Tensor:
