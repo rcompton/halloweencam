@@ -4,6 +4,7 @@ import random
 import shutil
 import sys
 
+import cv2
 import time, math
 import glfw, moderngl
 import numpy as np
@@ -278,6 +279,16 @@ def main(argv=None):
                 # Upload to GPU textures
                 have_mask = False
                 if frame_bgr is not None:
+                    # --- FIX: resize to window dims before upload ---
+                    if (
+                        cam_rgb_flipped.shape[0] != cfg.height
+                        or cam_rgb_flipped.shape[1] != cfg.width
+                    ):
+                        cam_rgb_flipped = cv2.resize(
+                            cam_rgb_flipped,
+                            (cfg.width, cfg.height),
+                            interpolation=cv2.INTER_LINEAR,
+                        )
                     sim.upload_camera(cam_rgb_flipped)
                     if mask_small is not None and area > cfg.mask_min_area:
                         sim.upload_mask(mask_small)
