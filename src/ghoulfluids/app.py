@@ -145,7 +145,6 @@ def main(argv=None):
 
     win = glfw.create_window(cfg.width, cfg.height, "Ghoul Fluids", monitor, None)
     glfw.make_context_current(win)
-    glfw.swap_interval(0)  # disable VSync
 
     def _linux_gl_hint():
         if sys.platform.startswith("linux"):
