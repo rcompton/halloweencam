@@ -15,8 +15,10 @@ class MediaPipeSegmenter:
         self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # --- CHANGE 1 (MediaPipe): Request 640x360 ---
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
         mp_seg = mp.solutions.selfie_segmentation
         self.segmenter = mp_seg.SelfieSegmentation(model_selection=0)
@@ -38,12 +40,19 @@ class MediaPipeSegmenter:
             cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
-        # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        with self.profiler.record("cam_resize"):
-            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-                cam_rgb_flipped = cv2.resize(
-                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
+        # --- FIX: Force resize frames to 640x360 ---
+        # The cap.set() request can be ignored, resulting in a large
+        # 4K frame. We must manually resize it to 640x360.
+        with self.profiler.record("cam_force_resize"):
+            if cam_rgb.shape[0] != 360 or cam_rgb.shape[1] != 640:
+                cam_rgb = cv2.resize(
+                    cam_rgb, (640, 360), interpolation=cv2.INTER_LINEAR
                 )
+                cam_rgb_flipped = cv2.resize(
+                    cam_rgb_flipped, (640, 360), interpolation=cv2.INTER_LINEAR
+                )
+
+        # --- CHANGE 2 (MediaPipe): REMOVED cam_resize BLOCK ---
 
         with self.profiler.record("mediapipe_process"):
             res = self.segmenter.process(cam_rgb)
@@ -88,8 +97,11 @@ class YOLOSegmenter:
         self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # --- CHANGE 1 (YOLO): Request 640x360 from camera ---
+        # This matches v4l2-ctl and fixes the 25ms cam_read stall
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
         self.model = YOLO(model_name)
         self.seg_w = seg_w
@@ -128,15 +140,24 @@ class YOLOSegmenter:
             cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
-        # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        with self.profiler.record("cam_resize"):
-            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-                cam_rgb_flipped = cv2.resize(
-                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
+        # --- FIX: Force resize frames to 640x360 ---
+        # The cap.set() request can be ignored, resulting in a large
+        # 4K frame. We must manually resize it to 640x360.
+        with self.profiler.record("cam_force_resize"):
+            if cam_rgb.shape[0] != 360 or cam_rgb.shape[1] != 640:
+                cam_rgb = cv2.resize(
+                    cam_rgb, (640, 360), interpolation=cv2.INTER_LINEAR
                 )
+                cam_rgb_flipped = cv2.resize(
+                    cam_rgb_flipped, (640, 360), interpolation=cv2.INTER_LINEAR
+                )
+
+        # --- CHANGE 2 (YOLO): REMOVED cam_resize BLOCK ---
+        # This block was here, removing it saves 7.2ms
 
         with self.profiler.record("yolo_preprocess"):
             # Resize for the model input
+            # This now correctly resizes the 640x360 frame to 640x384 (self.seg_w, self.seg_h)
             model_input_frame = cv2.resize(
                 cam_rgb, (self.seg_w, self.seg_h), interpolation=cv2.INTER_LINEAR
             )
@@ -190,3 +211,4 @@ class YOLOSegmenter:
 
     def release(self):
         self.cap.release()
+
