@@ -15,8 +15,10 @@ class MediaPipeSegmenter:
         self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # --- CHANGE 1 (MediaPipe): Request 640x360 ---
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
         mp_seg = mp.solutions.selfie_segmentation
         self.segmenter = mp_seg.SelfieSegmentation(model_selection=0)
@@ -37,13 +39,6 @@ class MediaPipeSegmenter:
         with self.profiler.record("cam_cvtColor"):
             cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
-
-        # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        with self.profiler.record("cam_resize"):
-            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-                cam_rgb_flipped = cv2.resize(
-                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
-                )
 
         with self.profiler.record("mediapipe_process"):
             res = self.segmenter.process(cam_rgb)
@@ -88,8 +83,11 @@ class YOLOSegmenter:
         self.mirror = mirror
         if not self.cap.isOpened():
             raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # --- CHANGE 1 (YOLO): Request 640x360 from camera ---
+        # This matches v4l2-ctl and fixes the 25ms cam_read stall
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
         self.model = YOLO(model_name)
         self.seg_w = seg_w
@@ -128,12 +126,6 @@ class YOLOSegmenter:
             cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
-        # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        with self.profiler.record("cam_resize"):
-            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-                cam_rgb_flipped = cv2.resize(
-                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
-                )
 
         with self.profiler.record("yolo_preprocess"):
             # Resize for the model input
@@ -190,3 +182,4 @@ class YOLOSegmenter:
 
     def release(self):
         self.cap.release()
+
