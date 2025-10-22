@@ -38,7 +38,9 @@ def main(argv=None):
         default=None,
         help="Camera device index.",
     )
-    p.add_argument("--no-mirror", action="store_true", help="Do not mirror camera feed.")
+    p.add_argument(
+        "--no-mirror", action="store_true", help="Do not mirror camera feed."
+    )
     p.add_argument(
         "--render-scale",
         type=float,
@@ -278,7 +280,8 @@ def main(argv=None):
                 # Upload to GPU textures
                 have_mask = False
                 if frame_bgr is not None:
-                    sim.upload_camera(cam_rgb_flipped)
+                    if split_view:  # Only upload if we are actually going to show it
+                        sim.upload_camera(cam_rgb_flipped)
                     if mask_small is not None and area > cfg.mask_min_area:
                         sim.upload_mask(mask_small)
                         have_mask = True
