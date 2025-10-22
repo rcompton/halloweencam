@@ -4,8 +4,6 @@ import numpy as np
 import mediapipe as mp
 import torch
 from ultralytics import YOLO
-import threading
-import time
 
 from .profiler import get_profiler
 
@@ -91,29 +89,6 @@ class YOLOSegmenter:
         self.seg_h = seg_h
         self.device = device
 
-        # --- Threading additions ---
-        self.latest_frame = None
-        self.frame_lock = threading.Lock()
-        self.running = True
-        self.thread = threading.Thread(target=self._reader_thread, daemon=True)
-        self.thread.start()
-        # --- End additions ---
-
-    def _reader_thread(self):
-        """Internal thread function to continuously read frames from the camera."""
-        while self.running:
-            ok, frame = self.cap.read()
-            if not ok:
-                time.sleep(0.01)  # Don't spin-lock on read error
-                continue
-
-            with self.frame_lock:
-                self.latest_frame = frame
-
-        # Release camera when thread stops
-        if self.cap:
-            self.cap.release()
-
     def _preprocess_image(self, img: np.ndarray) -> torch.Tensor:
         """Converts a NumPy image to a pre-processed torch tensor."""
         # Ensure contiguous array
@@ -134,17 +109,10 @@ class YOLOSegmenter:
         Returns (frame_bgr, cam_rgb_flippedV, mask_small_flippedV, mask_area_frac)
         mask_small matches (sim_w,sim_h), both flipped vertically for GL UV convention.
         """
-
-        # --- Replaced cam_read ---
         with self.profiler.record("cam_read"):
-            with self.frame_lock:
-                if self.latest_frame is None:
-                    return None, None, None, 0.0
-                frame = self.latest_frame.copy()
-
-            if frame is None:
-                return None, None, None, 0.0
-        # --- End replacement ---
+            ok, frame = self.cap.read()
+        if not ok:
+            return None, None, None, 0.0
 
         with self.profiler.record("cam_flip"):
             if self.mirror:
@@ -207,10 +175,4 @@ class YOLOSegmenter:
         return frame, cam_rgb_flipped, m_small, area
 
     def release(self):
-        # Signal the thread to stop and wait for it
-        self.running = False
-        if self.thread:
-            self.thread.join(timeout=1.0)
-
-        # Thread will call self.cap.release()
-        self.cap = None
+        self.cap.release()
