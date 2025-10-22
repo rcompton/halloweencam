@@ -29,7 +29,7 @@ pip install -e .
 
 # Use MJPEG @ 640x360 60 FPS (supported by your cam)
 v4l2-ctl --set-fmt-video=width=640,height=360,pixelformat=MJPG
-v4l2-ctl --set-parm=60
+v4l2-ctl --set-parm=30
 
 
 echo "Launching ghoulfluids GUI..."
