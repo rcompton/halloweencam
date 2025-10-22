@@ -38,13 +38,6 @@ class MediaPipeSegmenter:
             cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
-        # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        with self.profiler.record("cam_resize"):
-            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-                cam_rgb_flipped = cv2.resize(
-                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
-                )
-
         with self.profiler.record("mediapipe_process"):
             res = self.segmenter.process(cam_rgb)
         mask = res.segmentation_mask
@@ -127,13 +120,6 @@ class YOLOSegmenter:
         with self.profiler.record("cam_cvtColor"):
             cam_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
-
-        # ✅ Ensure the camera texture matches the window size (so tex.write size matches)
-        with self.profiler.record("cam_resize"):
-            if cam_rgb_flipped.shape[1] != win_w or cam_rgb_flipped.shape[0] != win_h:
-                cam_rgb_flipped = cv2.resize(
-                    cam_rgb_flipped, (win_w, win_h), interpolation=cv2.INTER_AREA
-                )
 
         with self.profiler.record("yolo_preprocess"):
             # Resize for the model input
