@@ -46,11 +46,8 @@ def test_mediapipe_segmenter_read_frame_and_mask(mock_mp, mock_video_capture):
 @patch("ghoulfluids.segmentation.YOLO")
 def test_yolo_segmenter_init(mock_yolo, mock_video_capture):
     segmenter = YOLOSegmenter(0, 1920, 1080, "yolov8n-seg.pt", 640, 480, device="cpu")
-    try:
-        assert segmenter.cap == mock_video_capture
-        mock_yolo.assert_called_once_with("yolov8n-seg.pt")
-    finally:
-        segmenter.release()
+    assert segmenter.cap == mock_video_capture
+    mock_yolo.assert_called_once_with("yolov8n-seg.pt")
 
 
 @patch("ghoulfluids.segmentation.YOLO")
@@ -67,15 +64,12 @@ def test_yolo_segmenter_read_frame_and_mask(mock_yolo, mock_video_capture):
     mock_model.return_value = mock_results
 
     segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt", 640, 480, device="cpu")
-    try:
-        frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
+    frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
 
-        assert frame is not None
-        assert cam_rgb is not None
-        assert mask is not None
-        assert area > 0
-    finally:
-        segmenter.release()
+    assert frame is not None
+    assert cam_rgb is not None
+    assert mask is not None
+    assert area > 0
 
 
 @patch("ghoulfluids.segmentation.YOLO")
@@ -84,17 +78,12 @@ def test_yolo_segmenter_read_frame_no_mask(mock_yolo, mock_video_capture):
     mock_model.return_value = []  # No results
 
     segmenter = YOLOSegmenter(0, 640, 480, "yolov8n-seg.pt", 640, 480, device="cpu")
-    try:
-        # HACK: Manually set a frame to avoid race condition with thread
-        segmenter.latest_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-        frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
+    frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)
 
-        assert frame is not None
-        assert cam_rgb is not None
-        assert mask is None
-        assert area == 0.0
-    finally:
-        segmenter.release()
+    assert frame is not None
+    assert cam_rgb is not None
+    assert mask is None
+    assert area == 0.0
 
 
 @patch("ghoulfluids.app.glfw")
@@ -172,13 +161,8 @@ def test_yolo_segmenter_mask_resize(mock_yolo, mock_video_capture):
     segmenter = YOLOSegmenter(
         0, win_w, win_h, "yolov8n-seg.pt", seg_w, seg_h, device="cpu"
     )
-    try:
-        # HACK: Manually set a frame to avoid race condition with thread
-        segmenter.latest_frame = np.zeros((win_h, win_w, 3), dtype=np.uint8)
-        _, _, mask, _ = segmenter.read_frame_and_mask(sim_w, sim_h, win_w, win_h)
+    _, _, mask, _ = segmenter.read_frame_and_mask(sim_w, sim_h, win_w, win_h)
 
-        assert mask is not None
-        # The final mask should be flipped vertically for OpenGL, hence (sim_h, sim_w)
-        assert mask.shape == (sim_h, sim_w)
-    finally:
-        segmenter.release()
+    assert mask is not None
+    # The final mask should be flipped vertically for OpenGL, hence (sim_h, sim_w)
+    assert mask.shape == (sim_h, sim_w)
