@@ -106,7 +106,7 @@ class FluidSim:
         self.mask_curr = make_tex(ctx, (self.sim_w, self.sim_h), 1)
         self.mask_prev = make_tex(ctx, (self.sim_w, self.sim_h), 1)
 
-        self.cam_tex = make_tex(ctx, (cfg.width, cfg.height), 3, dtype="f1")
+        self.cam_tex = make_tex(ctx, (640, 480), 3, dtype="f1")
 
         self.fbo_vel_a = ctx.framebuffer([self.vel_a])
         self.fbo_vel_b = ctx.framebuffer([self.vel_b])
