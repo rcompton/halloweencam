@@ -29,13 +29,14 @@ pip install -e .
 
 # Use MJPEG @ 640x360 60 FPS (supported by your cam)
 v4l2-ctl --set-fmt-video=width=640,height=480,pixelformat=MJPG
-v4l2-ctl --set-parm=60
+v4l2-ctl --set-parm=30
 
 echo "Locking camera exposure settings..."
 # Set Auto Exposure to Manual Mode (value 1)
 v4l2-ctl -c auto_exposure=1
 # Set Absolute Exposure Time to 33.3ms (value 333) for 30 FPS
 v4l2-ctl -c exposure_time_absolute=333
+v4l2-ctl -c gain=200
 ## Disable Continuous Auto Focus
 #v4l2-ctl -c focus_automatic_continuous=0
 ## Disable Auto White Balance
