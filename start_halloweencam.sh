@@ -28,13 +28,13 @@ echo "Running pip install..."
 pip install -e .
 
 # Use MJPEG @ 640x360 60 FPS (supported by your cam)
-v4l2-ctl --set-fmt-video=width=640,height=360,pixelformat=MJPG
+v4l2-ctl --set-fmt-video=width=640,height=480,pixelformat=MJPG
 v4l2-ctl --set-parm=60
 
 
 echo "Launching ghoulfluids GUI..."
 # Explicitly set the display for GUI applications
 export DISPLAY=:0
-ghoulfluids --fullscreen --debug --segmenter='yolo' --log-file="$LOG_FILE" --seg-width=640 --seg-height=384 &
+ghoulfluids --fullscreen --debug --segmenter='yolo' --log-file="$LOG_FILE" --seg-width=640 --seg-height=480 &
 
 echo "Script finished executing ghoulfluids command at $(date)."
