@@ -30,6 +30,10 @@ pip install -e .
 # Use MJPEG @ 640x360 60 FPS (supported by your cam)
 v4l2-ctl --set-fmt-video=width=640,height=480,pixelformat=MJPG
 v4l2-ctl --set-parm=60
+# Disable Auto Focus
+v4l2-ctl -c focus_auto=0
+# Disable Auto White Balance
+v4l2-ctl -c white_balance_temperature_auto=0
 
 
 echo "Launching ghoulfluids GUI..."
