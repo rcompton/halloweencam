@@ -13,6 +13,7 @@ class AppConfig:
     # --- Window and Rendering ---
     width: int = 1024  # Initial window width
     height: int = 576  # Initial window height
+    vsync: bool = True  # Enable V-Sync to cap FPS at monitor refresh rate
     render_scale: float = 0.6  # Dye texture resolution relative to window size
     dye_max_dim: int = 1024  # Maximum dimension (width or height) for the dye texture
     dye_fp16: bool = True  # Use half-float (16-bit) for dye textures for performance
