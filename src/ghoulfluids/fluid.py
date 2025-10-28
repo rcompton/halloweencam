@@ -37,6 +37,10 @@ class FluidSim:
             s = cfg.sim_max_dim / float(max_dim)
             self.sim_w = max(32, int(self.sim_w * s))
             self.sim_h = max(32, int(self.sim_h * s))
+
+        # Ensure dimensions are a multiple of 32 for performance
+        self.sim_w = int(round(self.sim_w / 32.0)) * 32
+        self.sim_h = int(round(self.sim_h / 32.0)) * 32
         logger.info(f"Calculated simulation dimensions: {self.sim_w}x{self.sim_h}")
 
         self.texel = (1.0 / self.sim_w, 1.0 / self.sim_h)
