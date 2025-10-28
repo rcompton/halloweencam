@@ -25,7 +25,7 @@ echo "Activating virtual environment..."
 source "$PROJECT_DIR/venv/bin/activate"
 
 echo "Running pip install..."
-pip install -e .
+pip install -e . --quiet
 
 WIDTH=640
 HEIGHT=480
