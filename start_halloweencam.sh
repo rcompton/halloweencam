@@ -36,7 +36,7 @@ v4l2-ctl --set-fmt-video=width=${WIDTH},height=${HEIGHT},pixelformat=MJPG
 ## Set Auto Exposure to Manual Mode (value 1)
 v4l2-ctl -c auto_exposure=1
 # Force the camera to obey the exposure setting, even if it drops FPS
-v4l2-ctl -c exposure_dynamic_framerate=0
+# v4l2-ctl -c exposure_dynamic_framerate=0
 ## Set Absolute Exposure Time
 v4l2-ctl -c exposure_time_absolute=400  # 25 FPS
 ## Set Gain
