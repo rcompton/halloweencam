@@ -32,17 +32,6 @@ HEIGHT=480
 
 # Use MJPEG @ WIDTHxHEIGHT
 v4l2-ctl --set-fmt-video=width=${WIDTH},height=${HEIGHT},pixelformat=MJPG
-echo "Locking camera exposure settings..."
-# Set Auto Exposure to Manual Mode (value 1)
-v4l2-ctl -c auto_exposure=1
-# Set Absolute Exposure Time
-v4l2-ctl -c exposure_time_absolute=700
-# Set Gain
-v4l2-ctl -c gain=200
-# Disable Continuous Auto Focus
-v4l2-ctl -c focus_automatic_continuous=0
-# Disable Auto White Balance
-v4l2-ctl -c white_balance_automatic=0
 
 
 echo "Launching ghoulfluids GUI..."
