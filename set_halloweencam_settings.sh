@@ -18,12 +18,23 @@ sleep 1
 
 echo "--- udev rule triggered for $DEVICE_NODE ---" >> $LOG_FILE
 
-/usr/bin/v4l2-ctl -d $DEVICE_NODE -c auto_exposure=1 >> $LOG_FILE 2>&1
-/usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_dynamic_framerate=0 >> $LOG_FILE 2>&1
-/usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_time_absolute=700 >> $LOG_FILE 2>&1
+# Set back to default Auto Mode (Aperture Priority)
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c auto_exposure=3 >> $LOG_FILE 2>&1
+# Set back to default (let camera control FPS)
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_dynamic_framerate=1 >> $LOG_FILE 2>&1
+# Comment out manual settings
+# /usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_time_absolute=700 >> $LOG_FILE 2>&1
 /usr/bin/v4l2-ctl -d $DEVICE_NODE -c gain=200 >> $LOG_FILE 2>&1
-/usr/bin/v4l2-ctl -d $DEVICE_NODE -c focus_automatic_continuous=0 >> $LOG_FILE 2>&1
-/usr/bin/v4l2-ctl -d $DEVICE_NODE -c white_balance_automatic=0 >> $LOG_FILE 2>&1
+# You can also re-enable auto-focus and auto-white-balance if you want
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c focus_automatic_continuous=1 >> $LOG_FILE 2>&1
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c white_balance_automatic=1 >> $LOG_FILE 2>&1
+
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c auto_exposure=1 >> $LOG_FILE 2>&1
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_dynamic_framerate=0 >> $LOG_FILE 2>&1
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_time_absolute=700 >> $LOG_FILE 2>&1
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c gain=200 >> $LOG_FILE 2>&1
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c focus_automatic_continuous=0 >> $LOG_FILE 2>&1
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c white_balance_automatic=0 >> $LOG_FILE 2>&1
 
 echo "--- udev settings applied successfully ---" >> $LOG_FILE
 
