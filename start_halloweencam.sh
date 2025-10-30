@@ -15,8 +15,8 @@ PROJECT_DIR="$HOME/halloweencam"
 echo "Changing directory to $PROJECT_DIR"
 cd "$PROJECT_DIR" || { echo "ERROR: Failed to cd into project directory. Exiting."; exit 1; }
 
-echo "Waiting 10 seconds for system to be ready..."
-sleep 2
+echo "Waiting 5 seconds for system to be ready..."
+sleep 5
 
 echo "Running git pull..."
 git pull
