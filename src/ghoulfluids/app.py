@@ -209,7 +209,7 @@ def main(argv=None):
 
     prev_t = time.time()
     frame_count = 0
-    log_interval = 1.0  # seconds
+    log_interval = 10.0  # seconds
     time_since_log = 0.0
 
     logger.info(
