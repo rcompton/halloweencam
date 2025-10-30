@@ -14,11 +14,11 @@ sleep 1
 
 echo "--- udev rule triggered for $DEVICE_NODE (Manual Low-Light Mode) ---" >> $LOG_FILE
 
-v4l2-ctl -d $DEVICE_NODE -c auto_exposure=3
-v4l2-ctl -d $DEVICE_NODE -c exposure_dynamic_framerate=1
-#v4l2-ctl -d $DEVICE_NODE -c focus_automatic_continuous=1
-/usr/bin/v4l2-ctl -d $DEVICE_NODE -c focus_absolute=20 >> $LOG_FILE 2>&1
-v4l2-ctl -d $DEVICE_NODE -c white_balance_automatic=1
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c auto_exposure=3
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c exposure_dynamic_framerate=1
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c focus_automatic_continuous=1
+#/usr/bin/v4l2-ctl -d $DEVICE_NODE -c focus_absolute=20 >> $LOG_FILE 2>&1
+/usr/bin/v4l2-ctl -d $DEVICE_NODE -c white_balance_automatic=1
 
 # --- Set Manual Mode ---
 ## 1 = Manual Mode, 3 = Auto Mode
