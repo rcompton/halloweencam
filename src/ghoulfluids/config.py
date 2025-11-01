@@ -53,17 +53,17 @@ class AppConfig:
     force_mode: str = "edges"  # How to apply forces from the mask ('edges' or 'full')
     edge_thresh: float = 0.02  # Threshold for detecting edges in the segmentation mask
     edge_normal_amp: float = (
-        14.5  # Strength of the force pushing away from the mask edge
+        15.5  # Strength of the force pushing away from the mask edge
     )
     edge_tangent_amp: float = 5.5  # Strength of the force moving along the mask edge
     edge_use_temporal: bool = (
         True  # Use mask from the previous frame to calculate velocity
     )
-    edge_dye_strength: float = 0.08  # How much dye to emit from the mask edges
+    edge_dye_strength: float = 0.10  # How much dye to emit from the mask edges
 
     # --- Ambient (when no mask is detected) ---
-    ambient_emitters: int = 30  # Number of drifting wisps to simulate
-    ambient_speed: float = 0.10  # Speed of ambient emitters (in UV units per second)
+    ambient_emitters: int = 50  # Number of drifting wisps to simulate
+    ambient_speed: float = 0.25  # Speed of ambient emitters (in UV units per second)
     ambient_radius: float = 0.050  # Splat radius for ambient emitters (in UV units)
     ambient_dye: float = 0.07  # Dye intensity per ambient splat
     ambient_vel_amp: float = 0.25  # Velocity injection strength for ambient emitters
