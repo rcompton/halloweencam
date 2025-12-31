@@ -341,7 +341,10 @@ def main(argv=None):
                             debug_overlay = DebugOverlay(ctx, cfg)
 
                         # --- calculate FPS ---
-                        fps = 1.0 / actual_dt
+                        if actual_dt > 0:
+                            fps = 1.0 / actual_dt
+                        else:
+                            fps = 0.0
                         frame_t_ms = actual_dt * 1000.0
 
                         # --- prepare text ---
