@@ -32,6 +32,7 @@ def main(argv=None):
         action="store_true",
         help="Open in fullscreen on the primary monitor.",
     )
+    p.add_argument("--no-vsync", action="store_true", help="Disable V-Sync.")
     p.add_argument(
         "--camera-id",
         type=int,
@@ -123,6 +124,8 @@ def main(argv=None):
         cfg.yolo_model = args.yolo_model
     if args.yolo_device is not None:
         cfg.yolo_device = args.yolo_device
+    if args.no_vsync:
+        cfg.vsync = False
 
     # --- logging ---
     setup_logging(cfg.log_level, cfg.log_file)
@@ -145,6 +148,8 @@ def main(argv=None):
 
     win = glfw.create_window(cfg.width, cfg.height, "Ghoul Fluids", monitor, None)
     glfw.make_context_current(win)
+    if not cfg.vsync:
+        glfw.swap_interval(0)
 
     def _linux_gl_hint():
         if sys.platform.startswith("linux"):
