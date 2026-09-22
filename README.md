@@ -20,6 +20,12 @@ Built with **ModernGL + GLFW + OpenCV + MediaPipe**. Optional split-screen shows
 
 ---
 
+## iOS app
+
+The iOS/iPadOS version lives in its own repo: [rcompton/ios_halloweencam](https://github.com/rcompton/ios_halloweencam).
+
+---
+
 ## How it works
 
 The fluid simulation is based on Jos Stam's stable fluids method, a technique that allows for real-time, unconditionally stable solutions to the Navier-Stokes equations (which describe fluid flow). While a full explanation is out of scope for this README, the key steps are:

@@ -23,4 +23,7 @@ env/
 .env/
 
 # Logs
-spooky.log
+*.log
+
+# macOS
+.DS_Store
