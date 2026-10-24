@@ -21,7 +21,7 @@ def test_eyes_appear_only_after_empty_and_then_fade_out():
 
 
 def test_eyes_leave_quickly_when_someone_arrives():
-    cfg = AppConfig(eyes_flee=True, eyes_min_empty=0.0, eyes_min_wait=0.1, eyes_max_wait=0.1)
+    cfg = AppConfig(eyes_min_wait=0.1, eyes_max_wait=0.1)  # default: flee
     eyes = EyesController(cfg)
     _run(eyes, 0.1 + cfg.eyes_fade + 0.5)
     assert eyes.alpha == 1.0
@@ -33,8 +33,8 @@ def test_eyes_disabled():
     assert max(_run(EyesController(cfg), 10.0)) == 0.0
 
 
-def test_eyes_stay_when_people_arrive_by_default():
-    cfg = AppConfig(eyes_min_wait=0.1, eyes_max_wait=0.1)
+def test_eyes_can_stay_when_people_arrive():
+    cfg = AppConfig(eyes_flee=False, eyes_min_wait=0.1, eyes_max_wait=0.1)
     eyes = EyesController(cfg)
     _run(eyes, 0.1 + cfg.eyes_fade + 0.5, person=True)
     assert eyes.alpha == 1.0
