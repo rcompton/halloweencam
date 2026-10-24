@@ -51,3 +51,18 @@ pip install -e .
 # 3) Run
 ghoulfluids            # fullscreen fluid
 ghoulfluids --split    # split view (camera | fluid)
+
+## Run on boot (kiosk box)
+
+```bash
+./install_autostart.sh
+```
+
+This adds a desktop autostart entry for `start_halloweencam.sh`, a udev rule that applies
+the Razer Kiyo Pro camera settings, and adds you to the `video` group. Enable automatic
+login in the desktop settings so it starts with no keyboard.
+
+The start script finds the camera by its USB name, waits for it to show up, and relaunches
+`ghoulfluids` if it exits. It does not update at boot; to update, run
+`./start_halloweencam.sh --update` (or `git pull && venv/bin/pip install -e .`).
+Logs go to `~/halloweencam_startup.log`.
