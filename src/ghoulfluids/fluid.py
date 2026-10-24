@@ -73,6 +73,7 @@ class FluidSim:
         self.prog_maskD = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_MASK_DYE)
         self.prog_show = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SHOW)
         self.prog_cam = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SHOW_CAM)
+        self.prog_ghost = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_GHOST)
 
         # palette state (updated each frame by the app)
         self.palette_a = self.cfg.palette_id
@@ -95,6 +96,7 @@ class FluidSim:
         self.vao_maskD = ctx.simple_vertex_array(self.prog_maskD, self.vbo, "in_vert")
         self.vao_show = ctx.simple_vertex_array(self.prog_show, self.vbo, "in_vert")
         self.vao_cam = ctx.simple_vertex_array(self.prog_cam, self.vbo, "in_vert")
+        self.vao_ghost = ctx.simple_vertex_array(self.prog_ghost, self.vbo, "in_vert")
 
         # textures / FBOs
         self.vel_a = make_tex(ctx, (self.sim_w, self.sim_h), 2)
@@ -109,6 +111,8 @@ class FluidSim:
 
         self.mask_curr = make_tex(ctx, (self.sim_w, self.sim_h), 1)
         self.mask_prev = make_tex(ctx, (self.sim_w, self.sim_h), 1)
+        self.ghost_a = make_tex(ctx, (self.sim_w, self.sim_h), 1, dtype="f2")
+        self.ghost_b = make_tex(ctx, (self.sim_w, self.sim_h), 1, dtype="f2")
 
         self.cam_tex = make_tex(ctx, (640, 480), 3, dtype="f1")
 
@@ -120,6 +124,8 @@ class FluidSim:
         self.fbo_prs_b = ctx.framebuffer([self.prs_b])
         self.fbo_div = ctx.framebuffer([self.div])
         self.fbo_curl = ctx.framebuffer([self.curl])
+        self.fbo_ghost_a = ctx.framebuffer([self.ghost_a])
+        self.fbo_ghost_b = ctx.framebuffer([self.ghost_b])
 
         for fbo in (
             self.fbo_vel_a,
@@ -130,6 +136,8 @@ class FluidSim:
             self.fbo_prs_b,
             self.fbo_div,
             self.fbo_curl,
+            self.fbo_ghost_a,
+            self.fbo_ghost_b,
         ):
             fbo.use()
             ctx.clear(0, 0, 0, 1)
@@ -173,6 +181,8 @@ class FluidSim:
         self.swap_dye()
 
         self.last_mask_small = None
+        self.crowd_k = 1.0  # edge force/dye multiplier from how much of the frame people fill
+        self.eyes = (0.0, (0.5, 0.6), 1.0)  # (alpha, pos, openness)
 
     # small helpers to swap ping-pong targets
     def swap_vel(self):
@@ -193,6 +203,33 @@ class FluidSim:
         self.mask_curr.write(mask_small.tobytes())
         self.last_mask_small = mask_small.copy()
 
+    def set_crowd(self, area: float):
+        """Scale edge forces and dye with how much of the frame people fill.
+        One person far away is ~0.05 of the frame; a close group 0.3+."""
+        lo, hi = 0.08, 0.35
+        x = max(0.0, min(1.0, (area - lo) / (hi - lo)))
+        target = 1.0 + self.cfg.crowd_boost * x
+        # ease toward it so detections flickering don't pump the effect
+        self.crowd_k += 0.1 * (target - self.crowd_k)
+
+    def set_eyes(self, alpha: float, pos, openness: float):
+        self.eyes = (float(alpha), (float(pos[0]), float(pos[1])), float(openness))
+
+    def update_ghost(self, dt: float, have_mask: bool):
+        """Once per frame: fade the silhouette trail and stamp the current mask."""
+        if self.cfg.ghost_strength <= 0.0:
+            return
+        self.fbo_ghost_b.use()
+        self.ghost_a.use(location=0)
+        self.mask_curr.use(location=1)
+        self.prog_ghost["ghost_in"].value = 0
+        self.prog_ghost["mask_curr"].value = 1
+        self.prog_ghost["decay"].value = math.exp(-dt / max(1e-3, self.cfg.ghost_fade))
+        self.prog_ghost["stamp"].value = 1.0 if have_mask else 0.0
+        self.vao_ghost.render(moderngl.TRIANGLE_STRIP)
+        self.ghost_a, self.ghost_b = self.ghost_b, self.ghost_a
+        self.fbo_ghost_a, self.fbo_ghost_b = self.fbo_ghost_b, self.fbo_ghost_a
+
     def set_palette_blend(self, a: int, b: int, mix: float):
         self.palette_a = int(a)
         self.palette_b = int(b)
@@ -200,6 +237,10 @@ class FluidSim:
 
     def step(self, dt: float, have_mask: bool):
         sdt = dt / self.cfg.substeps
+        k = self.crowd_k
+        self.prog_maskF["amp_normal"].value = self.cfg.edge_normal_amp * k
+        self.prog_maskF["amp_tangent"].value = self.cfg.edge_tangent_amp * k
+        self.prog_maskF_full["amp_normal"].value = self.cfg.edge_normal_amp * k
         for _ in range(self.cfg.substeps):
             # Background velocity
             if self.cfg.background_velocity > 0.0:
@@ -311,7 +352,7 @@ class FluidSim:
                     self.mask_curr.use(location=1)
                     self.prog_maskD["dye_in"].value = 0
                     self.prog_maskD["mask_curr"].value = 1
-                    self.prog_maskD["strength"].value = self.cfg.edge_dye_strength
+                    self.prog_maskD["strength"].value = self.cfg.edge_dye_strength * k
                     self.vao_maskD.render(moderngl.TRIANGLE_STRIP)
                     self.swap_dye()
 
@@ -342,6 +383,17 @@ class FluidSim:
         self.prog_show["glow_radius"].value = self.cfg.glow_radius
         self.prog_show["vignette"].value = self.cfg.vignette
         self.prog_show["aspect"].value = self.cfg.width / float(self.cfg.height)
+        self.ghost_a.use(location=1)
+        self.mask_curr.use(location=2)
+        self.prog_show["ghost"].value = 1
+        self.prog_show["mask_now"].value = 2
+        self.prog_show["ghost_strength"].value = self.cfg.ghost_strength
+        self.prog_show["ghost_color"].value = self.cfg.ghost_color
+        alpha, pos, openness = self.eyes
+        self.prog_show["eyes_alpha"].value = alpha
+        self.prog_show["eyes_pos"].value = pos
+        self.prog_show["eyes_size"].value = self.cfg.eyes_size
+        self.prog_show["eyes_open"].value = openness
         self.vao_show.render(moderngl.TRIANGLE_STRIP)
 
         # restore full viewport

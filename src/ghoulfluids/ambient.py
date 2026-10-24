@@ -55,7 +55,7 @@ class AmbientController:
             [self.rng.gauss(0.0, sigma), self.rng.gauss(0.0, sigma)], dtype=np.float32
         )
 
-    def step(self, dt: float, sim):
+    def step(self, dt: float, sim, strength: float = 1.0):
         """
         Inject ambient velocity & dye BEFORE the solver step so it affects this frame.
         `sim` is your FluidSim instance.
@@ -97,8 +97,8 @@ class AmbientController:
             sim.prog_splat["field"].value = 0
             sim.prog_splat["point"].value = (u, v)
             sim.prog_splat["value"].value = (
-                vx * cfg.ambient_vel_amp,
-                vy * cfg.ambient_vel_amp,
+                vx * cfg.ambient_vel_amp * strength,
+                vy * cfg.ambient_vel_amp * strength,
                 0.0,
             )
             sim.prog_splat["radius"].value = cfg.ambient_radius
@@ -106,7 +106,7 @@ class AmbientController:
             sim.swap_vel()
 
             # (b) wisp of dye
-            col = (e["col"] * cfg.ambient_dye).astype(np.float32)
+            col = (e["col"] * cfg.ambient_dye * strength).astype(np.float32)
             sim.fbo_dye_b.use()
             sim.dye_a.use(location=0)
             sim.prog_splat["field"].value = 0
@@ -138,7 +138,7 @@ class AmbientController:
             n = float(np.linalg.norm(t))
             if n > 1e-6:
                 t /= n
-            kick = t * cfg.vortex_strength
+            kick = t * cfg.vortex_strength * strength
             for (px, py), sgn in ((p1, +1.0), (p2, -1.0)):
                 sim.fbo_vel_b.use()
                 sim.vel_a.use(location=0)

@@ -228,6 +228,20 @@ void main(){
 }
 """
 
+FS_GHOST = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D ghost_in;
+uniform sampler2D mask_curr;
+uniform float decay;     // per-frame multiplier on the old trail
+uniform float stamp;     // 1 when a person mask is current, else 0
+void main(){
+    float g = texture(ghost_in, uv).r * decay;
+    float m = texture(mask_curr, uv).r * stamp;
+    fragColor = vec4(max(g, m), 0, 0, 1);
+}
+"""
+
 FS_SHOW = """
 #version 330
 in vec2 uv; out vec4 fragColor;
@@ -240,6 +254,25 @@ uniform float glow_strength; // 0 disables
 uniform float glow_radius;   // in UV units
 uniform float vignette;      // 0 disables, 1 = black corners
 uniform float aspect;        // width / height
+uniform sampler2D ghost;     // fading silhouette trail
+uniform sampler2D mask_now;  // current silhouette (so the trail shows behind it)
+uniform float ghost_strength;
+uniform vec3 ghost_color;
+uniform float eyes_alpha;    // 0 = hidden
+uniform vec2 eyes_pos;       // centre between the eyes (UV)
+uniform float eyes_size;     // eye width as a fraction of screen height
+uniform float eyes_open;     // 1 open .. 0 shut (blink)
+
+// One almond-shaped eye with a slit pupil. p is in eye units (x: -1..1 across).
+vec3 eye(vec2 p, float open_){
+    float h = max(open_, 0.02) * 0.42 * (1.0 - p.x * p.x);
+    float inside = smoothstep(0.02, -0.04, abs(p.y) - h) * step(abs(p.x), 1.0);
+    float pupil = smoothstep(0.10, 0.04, abs(p.x) - 0.12 * (1.0 - abs(p.y) / 0.42));
+    vec3 iris = mix(vec3(1.0, 0.85, 0.2), vec3(1.0, 0.15, 0.02), smoothstep(0.0, 0.8, length(p)));
+    vec3 col = inside * iris * (1.0 - 0.9 * pupil);
+    float glow = exp(-3.0 * dot(p * vec2(0.6, 2.0), p * vec2(0.6, 2.0))) * open_;
+    return col + glow * vec3(0.9, 0.08, 0.02) * 0.6;
+}
 
 // 3-stop gradient helper
 vec3 grad3(float t, vec3 a, vec3 b, vec3 c){
@@ -298,6 +331,23 @@ void main(){
         gl = 1.0 - exp(-2.3 * gl / 24.0);
         vec3 gc = mix(pick_palette(palette_id, gl), pick_palette(palette_id2, gl), pm);
         outc += glow_strength * gc * gl;
+    }
+
+    // Ghost trail: pale cold after-image, strongest just behind a moving person.
+    if (ghost_strength > 0.0){
+        float g = texture(ghost, uv).r;
+        float now_ = texture(mask_now, uv).r;
+        float trail = max(g - 0.6 * now_, 0.0);
+        outc += ghost_strength * ghost_color * (trail + 0.25 * g);
+    }
+
+    if (eyes_alpha > 0.0){
+        vec2 d = (uv - eyes_pos) * vec2(aspect, 1.0) / eyes_size;
+        float tilt = 0.28;  // angled inward: angry
+        vec2 l = d - vec2(-1.25, 0.0), r = d - vec2(1.25, 0.0);
+        l = mat2(cos(tilt), sin(tilt), -sin(tilt), cos(tilt)) * l;
+        r = mat2(cos(-tilt), sin(-tilt), -sin(-tilt), cos(-tilt)) * r;
+        outc += eyes_alpha * (eye(l, eyes_open) + eye(r, eyes_open));
     }
 
     if (vignette > 0.0){

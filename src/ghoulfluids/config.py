@@ -91,3 +91,17 @@ class AppConfig:
     glow_strength: float = 0.6  # Soft glow around bright smoke; 0 to disable
     glow_radius: float = 0.025  # Glow spread (in UV units of screen height)
     vignette: float = 0.6  # Darken screen edges; 0 to disable, 1 = black corners
+
+    # --- Effects ---
+    ghost_strength: float = 0.0  # Pale after-image trail behind people; 0 to disable
+    ghost_fade: float = 0.6  # Seconds for the trail to fade to ~37%
+    ghost_color: tuple = (0.55, 0.8, 1.0)  # Cold blue-white
+    crowd_boost: float = 1.0  # Extra edge force/dye when people fill the frame (1 = up to 2x)
+    ambient_with_person: float = 0.35  # Background wisps keep going at this strength when someone's there
+    eyes: bool = True  # Glowing eyes appear in the smoke when nobody's around
+    eyes_min_empty: float = 8.0  # Nobody seen for this long before eyes may appear
+    eyes_min_wait: float = 12.0  # Random wait between appearances (seconds)
+    eyes_max_wait: float = 35.0
+    eyes_fade: float = 1.5  # Fade in/out seconds
+    eyes_hold: float = 4.0  # Seconds fully visible (blinks happen here)
+    eyes_size: float = 0.05  # Eye width as a fraction of screen height

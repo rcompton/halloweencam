@@ -15,6 +15,7 @@ import numpy as np
 from .ambient import AmbientController
 from .config import AppConfig
 from .debug import DebugOverlay
+from .eyes import EyesController
 from .fluid import FluidSim
 from .logging import get_logger, setup_logging
 from .profiler import get_profiler
@@ -249,6 +250,7 @@ def main(argv=None):
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
 
     ambient = AmbientController(cfg, seed=42)
+    eyes = EyesController(cfg)
 
     debug_overlay = None
 
@@ -374,9 +376,12 @@ def main(argv=None):
 
                 if running:
                     # --- Ambient emitters ---
-                    # If no mask is detected, emit from ambient regions to keep it varied.
-                    if not have_mask and cfg.ambient_emitters > 0:
-                        ambient.step(sim_dt, sim)
+                    # Drifting wisps keep it varied; weaker while someone is in front.
+                    if cfg.ambient_emitters > 0:
+                        if not have_mask:
+                            ambient.step(sim_dt, sim)
+                        elif cfg.ambient_with_person > 0:
+                            ambient.step(sim_dt, sim, cfg.ambient_with_person)
 
                     # --- Palette cycling ---
                     # Auto-cycle through color palettes.
@@ -412,7 +417,10 @@ def main(argv=None):
                     # --- Simulation step ---
                     # This is where all the fluid magic happens.
                     with profiler.record("simulation"):
+                        sim.set_crowd(area if have_mask else 0.0)
                         sim.step(sim_dt, have_mask)
+                        sim.update_ghost(sim_dt, have_mask)
+                    sim.set_eyes(*eyes.step(sim_dt, have_mask))
 
                 # --- Render to screen ---
                 # All simulation work is done in offscreen framebuffers.
