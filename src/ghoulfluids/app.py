@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import shutil
+import signal
 import sys
 import threading
 
@@ -20,6 +21,18 @@ from .profiler import get_profiler
 from .segmentation import MediaPipeSegmenter, YOLOSegmenter
 
 WATCHDOG_SECS = 20.0  # kill the process if no frame completes for this long
+
+
+def save_snapshot(ctx, cfg, logger):
+    import cv2
+
+    out_dir = os.path.expanduser("~/halloweencam_shots")
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, time.strftime("%Y%m%d-%H%M%S.jpg"))
+    raw = ctx.screen.read(viewport=(0, 0, cfg.width, cfg.height), components=3)
+    img = np.frombuffer(raw, np.uint8).reshape(cfg.height, cfg.width, 3)
+    cv2.imwrite(path, cv2.cvtColor(img[::-1], cv2.COLOR_RGB2BGR))
+    logger.info(f"Saved snapshot {path}")
 
 
 def start_watchdog(logger, timeout: float = WATCHDOG_SECS):
@@ -246,6 +259,12 @@ def main(argv=None):
 
     profiler = get_profiler()
     watchdog_tick, watchdog_stop = start_watchdog(logger)
+
+    # `kill -USR1 <pid>` saves the next frame to ~/halloweencam_shots/ (for tuning
+    # remotely; the desktop doesn't allow outside screenshots).
+    snapshot_requested = threading.Event()
+    if hasattr(signal, "SIGUSR1"):
+        signal.signal(signal.SIGUSR1, lambda *_: snapshot_requested.set())
     try:
         while not glfw.window_should_close(win):
             watchdog_tick()
@@ -406,6 +425,10 @@ def main(argv=None):
                 profiler.log_stats()
                 frame_count = 0
                 time_since_log = 0.0
+
+            if snapshot_requested.is_set():
+                snapshot_requested.clear()
+                save_snapshot(ctx, cfg, logger)
 
             with profiler.record("swap"):
                 glfw.swap_buffers(win)

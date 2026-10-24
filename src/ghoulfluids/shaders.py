@@ -12,10 +12,13 @@ uniform sampler2D vel;
 uniform sampler2D src;
 uniform float dt;
 uniform float dissipation;
+uniform float top_fade;  // height of the band (UV) at the top where values fade out; 0 = off
 void main(){
     vec2 v = texture(vel, uv).xy;
     vec2 prev = clamp(uv - v*dt, vec2(0.001), vec2(0.999));
-    fragColor = texture(src, prev) * dissipation;
+    float d = dissipation;
+    if (top_fade > 0.0) d *= mix(0.97, 1.0, smoothstep(1.0, 1.0 - top_fade, uv.y));
+    fragColor = texture(src, prev) * d;
 }
 """
 
@@ -66,11 +69,13 @@ in vec2 uv; out vec4 fragColor;
 uniform sampler2D prs;
 uniform sampler2D div;
 uniform vec2 texel;
+uniform int open_top;  // 1: smoke leaves through the top edge (pressure 0 there)
 void main(){
     float L = texture(prs, uv - vec2(texel.x,0)).r;
     float R = texture(prs, uv + vec2(texel.x,0)).r;
     float B = texture(prs, uv - vec2(0,texel.y)).r;
     float T = texture(prs, uv + vec2(0,texel.y)).r;
+    if (open_top == 1 && uv.y + texel.y > 1.0) T = 0.0;
     float b = texture(div, uv).r;
     float p = 0.25 * (L + R + B + T - b);
     fragColor = vec4(p,0,0,1);
@@ -83,11 +88,13 @@ in vec2 uv; out vec4 fragColor;
 uniform sampler2D vel;
 uniform sampler2D prs;
 uniform vec2 texel;
+uniform int open_top;
 void main(){
     float L = texture(prs, uv - vec2(texel.x,0)).r;
     float R = texture(prs, uv + vec2(texel.x,0)).r;
     float B = texture(prs, uv - vec2(0,texel.y)).r;
     float T = texture(prs, uv + vec2(0,texel.y)).r;
+    if (open_top == 1 && uv.y + texel.y > 1.0) T = 0.0;
     vec2 grad = 0.5 * vec2(R - L, T - B);
     vec2 v = texture(vel, uv).xy - grad;
     fragColor = vec4(v,0,1);
@@ -218,6 +225,10 @@ uniform int palette_on;
 uniform int palette_id;   // current palette (0..N-1)
 uniform int palette_id2;  // next palette for crossfade
 uniform float palette_mix; // 0..1 crossfade amount
+uniform float glow_strength; // 0 disables
+uniform float glow_radius;   // in UV units
+uniform float vignette;      // 0 disables, 1 = black corners
+uniform float aspect;        // width / height
 
 // 3-stop gradient helper
 vec3 grad3(float t, vec3 a, vec3 b, vec3 c){
@@ -257,12 +268,31 @@ void main(){
         return;
     }
     // luminance → perceptual curve (same as before, just named)
-    float l = dot(dye_rgb, vec3(0.299, 0.587, 0.114));
+    const vec3 LUMA = vec3(0.299, 0.587, 0.114);
+    float l = dot(dye_rgb, LUMA);
     l = 1.0 - exp(-2.3 * l);
 
-    vec3 a = pick_palette(palette_id, l);
-    vec3 b = pick_palette(palette_id2, l);
-    vec3 outc = mix(a, b, clamp(palette_mix, 0.0, 1.0));
+    float pm = clamp(palette_mix, 0.0, 1.0);
+    vec3 outc = mix(pick_palette(palette_id, l), pick_palette(palette_id2, l), pm);
+
+    // Glow: blur the dye with two rings of taps and add it back, palette-coloured.
+    if (glow_strength > 0.0){
+        float gl = 0.0;
+        for (int i = 0; i < 12; i++){
+            float ang = 6.2831853 * (float(i) + 0.5) / 12.0;
+            vec2 dir = vec2(cos(ang) / aspect, sin(ang));
+            gl += dot(texture(dye, uv + dir * glow_radius * 0.4).rgb, LUMA);
+            gl += dot(texture(dye, uv + dir * glow_radius).rgb, LUMA);
+        }
+        gl = 1.0 - exp(-2.3 * gl / 24.0);
+        vec3 gc = mix(pick_palette(palette_id, gl), pick_palette(palette_id2, gl), pm);
+        outc += glow_strength * gc * gl;
+    }
+
+    if (vignette > 0.0){
+        vec2 d = (uv - 0.5) * vec2(aspect, 1.0) / (0.5 * aspect);
+        outc *= 1.0 - vignette * smoothstep(0.35, 1.25, length(d));
+    }
     fragColor = vec4(outc, 1.0);
 }
 """

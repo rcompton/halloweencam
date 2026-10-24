@@ -143,6 +143,8 @@ class FluidSim:
         self.prog_div["texel"].value = self.texel
         self.prog_jac["texel"].value = self.texel
         self.prog_grad["texel"].value = self.texel
+        self.prog_jac["open_top"].value = 1 if self.cfg.open_top else 0
+        self.prog_grad["open_top"].value = 1 if self.cfg.open_top else 0
         self.prog_curl["texel"].value = self.texel
         self.prog_vort["texel"].value = self.texel
         self.prog_vort["eps"].value = self.cfg.vorticity_eps
@@ -219,6 +221,7 @@ class FluidSim:
                 self.prog_adv["src"].value = 1
                 self.prog_adv["dt"].value = sdt
                 self.prog_adv["dissipation"].value = self.cfg.vel_dissipation
+                self.prog_adv["top_fade"].value = 0.0
                 self.vao_adv.render(moderngl.TRIANGLE_STRIP)
                 self.swap_vel()
 
@@ -293,6 +296,7 @@ class FluidSim:
                 self.prog_adv["src"].value = 1
                 self.prog_adv["dt"].value = sdt
                 self.prog_adv["dissipation"].value = self.cfg.dye_dissipation
+                self.prog_adv["top_fade"].value = self.cfg.top_fade
                 self.vao_adv.render(moderngl.TRIANGLE_STRIP)
                 self.swap_dye()
 
@@ -331,6 +335,10 @@ class FluidSim:
         self.prog_show["palette_id"].value = int(self.palette_a)
         self.prog_show["palette_id2"].value = int(self.palette_b)
         self.prog_show["palette_mix"].value = float(self.palette_mix)
+        self.prog_show["glow_strength"].value = self.cfg.glow_strength
+        self.prog_show["glow_radius"].value = self.cfg.glow_radius
+        self.prog_show["vignette"].value = self.cfg.vignette
+        self.prog_show["aspect"].value = self.cfg.width / float(self.cfg.height)
         self.vao_show.render(moderngl.TRIANGLE_STRIP)
 
         # restore full viewport
