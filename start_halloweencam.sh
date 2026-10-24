@@ -30,6 +30,13 @@ pip install -e . --quiet
 WIDTH=640
 HEIGHT=480
 
+# The webcam can enumerate after login; wait up to 60s for it to appear.
+for _ in $(seq 60); do
+    [ -e /dev/video0 ] && break
+    echo "Waiting for /dev/video0..."
+    sleep 1
+done
+
 # Use MJPEG @ WIDTHxHEIGHT
 v4l2-ctl --set-fmt-video=width=${WIDTH},height=${HEIGHT},pixelformat=MJPG
 

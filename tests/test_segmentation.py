@@ -20,19 +20,27 @@ def mock_video_capture():
         yield mock_instance
 
 
-@patch("mediapipe.solutions.selfie_segmentation.SelfieSegmentation")
+@patch("ghoulfluids.segmentation.vision.ImageSegmenter.create_from_options")
 def test_mediapipe_segmenter_init(mock_mp, mock_video_capture):
     segmenter = MediaPipeSegmenter(0, 1920, 1080)
     assert segmenter.cap == mock_video_capture
     mock_mp.assert_called_once()
 
 
-@patch("mediapipe.solutions.selfie_segmentation.SelfieSegmentation")
+def test_mediapipe_model_is_bundled():
+    from ghoulfluids.segmentation import SELFIE_MODEL_PATH
+
+    assert SELFIE_MODEL_PATH.is_file()
+
+
+@patch("ghoulfluids.segmentation.vision.ImageSegmenter.create_from_options")
 def test_mediapipe_segmenter_read_frame_and_mask(mock_mp, mock_video_capture):
     mock_segmentation = mock_mp.return_value
+    mock_confidence = MagicMock()
+    mock_confidence.numpy_view.return_value = np.ones((480, 640, 1), dtype=np.float32)
     mock_results = MagicMock()
-    mock_results.segmentation_mask = np.ones((480, 640), dtype=np.float32)
-    mock_segmentation.process.return_value = mock_results
+    mock_results.confidence_masks = [mock_confidence]
+    mock_segmentation.segment.return_value = mock_results
 
     segmenter = MediaPipeSegmenter(0, 640, 480)
     frame, cam_rgb, mask, area = segmenter.read_frame_and_mask(320, 240, 640, 480)

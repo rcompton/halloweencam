@@ -1,11 +1,17 @@
 from __future__ import annotations
+from pathlib import Path
+
 import cv2
 import numpy as np
 import mediapipe as mp
+from mediapipe.tasks.python import BaseOptions, vision
 import torch
 from ultralytics import YOLO
 
 from .profiler import get_profiler
+
+# Google's MediaPipe selfie segmenter (Apache-2.0), bundled so no download is needed.
+SELFIE_MODEL_PATH = Path(__file__).parent / "models" / "selfie_segmenter.tflite"
 
 
 class MediaPipeSegmenter:
@@ -18,8 +24,13 @@ class MediaPipeSegmenter:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
-        mp_seg = mp.solutions.selfie_segmentation
-        self.segmenter = mp_seg.SelfieSegmentation(model_selection=0)
+        options = vision.ImageSegmenterOptions(
+            base_options=BaseOptions(model_asset_path=str(SELFIE_MODEL_PATH)),
+            running_mode=vision.RunningMode.IMAGE,
+            output_confidence_masks=True,
+            output_category_mask=False,
+        )
+        self.segmenter = vision.ImageSegmenter.create_from_options(options)
 
     def read_frame_and_mask(self, sim_w: int, sim_h: int, win_w: int, win_h: int):
         """
@@ -39,10 +50,14 @@ class MediaPipeSegmenter:
             cam_rgb_flipped = cv2.flip(cam_rgb, 0)
 
         with self.profiler.record("mediapipe_process"):
-            res = self.segmenter.process(cam_rgb)
-        mask = res.segmentation_mask
-        if mask is None:
+            mp_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(cam_rgb)
+            )
+            res = self.segmenter.segment(mp_image)
+        if not res.confidence_masks:
             return frame, cam_rgb_flipped, None, 0.0
+        # (H, W, 1) person-confidence mask -> (H, W)
+        mask = np.squeeze(res.confidence_masks[0].numpy_view())
 
         with self.profiler.record("mask_resize"):
             m_big = cv2.resize(
