@@ -182,7 +182,7 @@ class FluidSim:
 
         self.last_mask_small = None
         self.crowd_k = 1.0  # edge force/dye multiplier from how much of the frame people fill
-        self.eyes = (0.0, (0.5, 0.6), 1.0)  # (alpha, pos, openness)
+        self.eyes = []  # [(alpha, (u, v), openness, scale)] per pair, from EyesSwarm
 
     # small helpers to swap ping-pong targets
     def swap_vel(self):
@@ -212,8 +212,10 @@ class FluidSim:
         # ease toward it so detections flickering don't pump the effect
         self.crowd_k += 0.1 * (target - self.crowd_k)
 
-    def set_eyes(self, alpha: float, pos, openness: float):
-        self.eyes = (float(alpha), (float(pos[0]), float(pos[1])), float(openness))
+    MAX_EYES = 4  # keep in sync with MAX_EYES in FS_SHOW
+
+    def set_eyes(self, pairs):
+        self.eyes = list(pairs)[: self.MAX_EYES]
 
     def update_ghost(self, dt: float, have_mask: bool):
         """Once per frame: fade the silhouette trail and stamp the current mask."""
@@ -389,11 +391,10 @@ class FluidSim:
         self.prog_show["mask_now"].value = 2
         self.prog_show["ghost_strength"].value = self.cfg.ghost_strength
         self.prog_show["ghost_color"].value = self.cfg.ghost_color
-        alpha, pos, openness = self.eyes
-        self.prog_show["eyes_alpha"].value = alpha
-        self.prog_show["eyes_pos"].value = pos
-        self.prog_show["eyes_size"].value = self.cfg.eyes_size
-        self.prog_show["eyes_open"].value = openness
+        eyes = [(0.0, (0.5, 0.5), 1.0, 1.0)] * self.MAX_EYES
+        eyes[: len(self.eyes)] = self.eyes
+        self.prog_show["eyes"].value = [(a, p[0], p[1], o) for a, p, o, _ in eyes]
+        self.prog_show["eyes_size"].value = [self.cfg.eyes_size * s for *_, s in eyes]
         self.vao_show.render(moderngl.TRIANGLE_STRIP)
 
         # restore full viewport

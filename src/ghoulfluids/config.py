@@ -98,10 +98,12 @@ class AppConfig:
     ghost_color: tuple = (0.55, 0.8, 1.0)  # Cold blue-white
     crowd_boost: float = 1.0  # Extra edge force/dye when people fill the frame (1 = up to 2x)
     ambient_with_person: float = 0.35  # Background wisps keep going at this strength when someone's there
-    eyes: bool = True  # Glowing eyes appear in the smoke when nobody's around
-    eyes_min_empty: float = 8.0  # Nobody seen for this long before eyes may appear
-    eyes_min_wait: float = 12.0  # Random wait between appearances (seconds)
-    eyes_max_wait: float = 35.0
-    eyes_fade: float = 1.5  # Fade in/out seconds
-    eyes_hold: float = 4.0  # Seconds fully visible (blinks happen here)
-    eyes_size: float = 0.05  # Eye width as a fraction of screen height
+    eyes: bool = True  # Glowing demon eyes appear in the smoke
+    eyes_count: int = 4  # Pairs that can be on screen at once (max 4)
+    eyes_flee: bool = False  # Fade out when someone shows up (False: they watch you)
+    eyes_min_empty: float = 0.0  # Only appear after nobody's been seen this long; 0 = always
+    eyes_min_wait: float = 2.0  # Random wait per pair between appearances (seconds)
+    eyes_max_wait: float = 8.0
+    eyes_fade: float = 1.0  # Fade in/out seconds
+    eyes_hold: float = 3.0  # Seconds fully visible (blinks happen here)
+    eyes_size: float = 0.05  # Eye width as a fraction of screen height (each pair varies 0.6-1.4x)

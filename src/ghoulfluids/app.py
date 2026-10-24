@@ -15,7 +15,7 @@ import numpy as np
 from .ambient import AmbientController
 from .config import AppConfig
 from .debug import DebugOverlay
-from .eyes import EyesController
+from .eyes import EyesSwarm
 from .fluid import FluidSim
 from .logging import get_logger, setup_logging
 from .profiler import get_profiler
@@ -250,7 +250,7 @@ def main(argv=None):
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
 
     ambient = AmbientController(cfg, seed=42)
-    eyes = EyesController(cfg)
+    eyes = EyesSwarm(cfg)
 
     debug_overlay = None
 
@@ -420,7 +420,7 @@ def main(argv=None):
                         sim.set_crowd(area if have_mask else 0.0)
                         sim.step(sim_dt, have_mask)
                         sim.update_ghost(sim_dt, have_mask)
-                    sim.set_eyes(*eyes.step(sim_dt, have_mask))
+                    sim.set_eyes(eyes.step(sim_dt, have_mask))
 
                 # --- Render to screen ---
                 # All simulation work is done in offscreen framebuffers.

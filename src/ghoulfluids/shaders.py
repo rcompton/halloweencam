@@ -258,10 +258,9 @@ uniform sampler2D ghost;     // fading silhouette trail
 uniform sampler2D mask_now;  // current silhouette (so the trail shows behind it)
 uniform float ghost_strength;
 uniform vec3 ghost_color;
-uniform float eyes_alpha;    // 0 = hidden
-uniform vec2 eyes_pos;       // centre between the eyes (UV)
-uniform float eyes_size;     // eye width as a fraction of screen height
-uniform float eyes_open;     // 1 open .. 0 shut (blink)
+#define MAX_EYES 4
+uniform vec4 eyes[MAX_EYES];        // per pair: alpha (0 = hidden), centre u, centre v, openness
+uniform float eyes_size[MAX_EYES];  // eye width as a fraction of screen height
 
 // One almond-shaped eye with a slit pupil. p is in eye units (x: -1..1 across).
 vec3 eye(vec2 p, float open_){
@@ -341,13 +340,16 @@ void main(){
         outc += ghost_strength * ghost_color * (trail + 0.25 * g);
     }
 
-    if (eyes_alpha > 0.0){
-        vec2 d = (uv - eyes_pos) * vec2(aspect, 1.0) / eyes_size;
-        float tilt = 0.28;  // angled inward: angry
-        vec2 l = d - vec2(-1.25, 0.0), r = d - vec2(1.25, 0.0);
-        l = mat2(cos(tilt), sin(tilt), -sin(tilt), cos(tilt)) * l;
-        r = mat2(cos(-tilt), sin(-tilt), -sin(-tilt), cos(-tilt)) * r;
-        outc += eyes_alpha * (eye(l, eyes_open) + eye(r, eyes_open));
+    const float tilt = 0.28;  // angled inward: angry
+    const mat2 rot_l = mat2(cos(tilt), sin(tilt), -sin(tilt), cos(tilt));
+    const mat2 rot_r = mat2(cos(tilt), -sin(tilt), sin(tilt), cos(tilt));
+    for (int i = 0; i < MAX_EYES; i++){
+        if (eyes[i].x <= 0.0) continue;
+        vec2 d = (uv - eyes[i].yz) * vec2(aspect, 1.0) / eyes_size[i];
+        if (dot(d, d) > 16.0) continue;  // far from this pair
+        vec2 l = rot_l * (d - vec2(-1.25, 0.0));
+        vec2 r = rot_r * (d - vec2(1.25, 0.0));
+        outc += eyes[i].x * (eye(l, eyes[i].w) + eye(r, eyes[i].w));
     }
 
     if (vignette > 0.0){
