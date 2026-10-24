@@ -2,6 +2,7 @@
 # Launch the Halloween cam at desktop login and keep it running.
 #
 # Started by ~/.config/autostart/halloweencam.desktop (see README).
+# Stop it with:  ./start_halloweencam.sh --stop
 # Boot does NOT git pull or pip install: an update that fails at boot
 # should never take the display down. To update, run with --update.
 
@@ -11,6 +12,16 @@ WIDTH=640
 HEIGHT=480
 CAMERA_MATCH="Razer"     # substring of the camera's /dev/v4l/by-id name
 CAMERA_WAIT_SECS=120
+PID_FILE="/tmp/halloweencam.$USER.pid"
+
+# --stop: end the restart loop first (so it can't relaunch), then the app.
+if [ "$1" = "--stop" ]; then
+    [ -f "$PID_FILE" ] && kill "$(cat "$PID_FILE")" 2>/dev/null
+    pkill -f "$PROJECT_DIR/venv/bin/ghoulfluids"
+    rm -f "$PID_FILE"
+    echo "Halloween cam stopped."
+    exit 0
+fi
 
 # Keep the log from growing forever.
 if [ -f "$LOG_FILE" ] && [ "$(stat -c %s "$LOG_FILE")" -gt 5000000 ]; then
@@ -26,6 +37,7 @@ if ! flock -n 9; then
     log "Already running; exiting."
     exit 0
 fi
+echo $$ > "$PID_FILE"
 
 cd "$PROJECT_DIR" || { log "ERROR: cannot cd to $PROJECT_DIR"; exit 1; }
 

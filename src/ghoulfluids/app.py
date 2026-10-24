@@ -1,8 +1,11 @@
 from __future__ import annotations
 import argparse
+import logging
+import os
 import random
 import shutil
 import sys
+import threading
 
 import time, math
 import glfw, moderngl
@@ -15,6 +18,31 @@ from .fluid import FluidSim
 from .logging import get_logger, setup_logging
 from .profiler import get_profiler
 from .segmentation import MediaPipeSegmenter, YOLOSegmenter
+
+WATCHDOG_SECS = 20.0  # kill the process if no frame completes for this long
+
+
+def start_watchdog(logger, timeout: float = WATCHDOG_SECS):
+    """
+    Exit hard if the main loop stops ticking (e.g. stuck in a camera read or a
+    GPU call), so the start script can relaunch us. Call the returned function
+    once per frame; set the returned event to stop watching.
+    """
+    last_tick = [time.monotonic()]
+    stop = threading.Event()
+
+    def tick():
+        last_tick[0] = time.monotonic()
+
+    def watch():
+        while not stop.wait(1.0):
+            if time.monotonic() - last_tick[0] > timeout:
+                logger.critical(f"Main loop stalled for {timeout:.0f}s; exiting")
+                logging.shutdown()
+                os._exit(3)
+
+    threading.Thread(target=watch, name="watchdog", daemon=True).start()
+    return tick, stop
 
 
 def main(argv=None):
@@ -217,8 +245,10 @@ def main(argv=None):
     )
 
     profiler = get_profiler()
+    watchdog_tick, watchdog_stop = start_watchdog(logger)
     try:
         while not glfw.window_should_close(win):
+            watchdog_tick()
             with profiler.record("frame"):
                 # --- Event handling ---
                 glfw.poll_events()
@@ -381,5 +411,6 @@ def main(argv=None):
                 glfw.swap_buffers(win)
 
     finally:
+        watchdog_stop.set()
         seg.release()
         glfw.terminate()

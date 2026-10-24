@@ -1,4 +1,6 @@
 from __future__ import annotations
+import logging
+import time
 from pathlib import Path
 
 import cv2
@@ -13,16 +15,64 @@ from .profiler import get_profiler
 # Google's MediaPipe selfie segmenter (Apache-2.0), bundled so no download is needed.
 SELFIE_MODEL_PATH = Path(__file__).parent / "models" / "selfie_segmenter.tflite"
 
+# How long camera reads may keep failing before we reopen it, and then give up.
+CAMERA_FAIL_SECS = 2.0
 
-class MediaPipeSegmenter:
+logger = logging.getLogger(__name__)
+
+
+def open_camera(camera_index: int, width: int, height: int):
+    cap = cv2.VideoCapture(camera_index)
+    if not cap.isOpened():
+        raise RuntimeError("Cannot open webcam")
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    return cap
+
+
+class CameraReader:
+    """
+    Owns the VideoCapture and recovers from a camera that stops delivering frames
+    (USB hiccup, unplug). After CAMERA_FAIL_SECS of failed reads it reopens the
+    device once; if that doesn't help it raises, so the process exits and the
+    start script can find the camera again.
+    """
+
+    def _init_camera(self, camera_index: int, width: int, height: int):
+        self._cam_args = (camera_index, width, height)
+        self.cap = open_camera(camera_index, width, height)
+        self._fail_since = None
+        self._reopened = False
+
+    def _read_camera(self):
+        ok, frame = self.cap.read()
+        if ok:
+            self._fail_since = None
+            self._reopened = False
+            return frame
+
+        now = time.monotonic()
+        if self._fail_since is None:
+            self._fail_since = now
+        elif now - self._fail_since >= CAMERA_FAIL_SECS:
+            if self._reopened:
+                raise RuntimeError("Camera stopped delivering frames")
+            logger.warning("Camera reads failing; reopening camera")
+            self.cap.release()
+            try:
+                self.cap = open_camera(*self._cam_args)
+            except RuntimeError:
+                logger.warning("Camera reopen failed")
+            self._reopened = True
+            self._fail_since = time.monotonic()
+        return None
+
+
+class MediaPipeSegmenter(CameraReader):
     def __init__(self, camera_index: int, width: int, height: int, mirror: bool = True):
         self.profiler = get_profiler()
-        self.cap = cv2.VideoCapture(camera_index)
+        self._init_camera(camera_index, width, height)
         self.mirror = mirror
-        if not self.cap.isOpened():
-            raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         options = vision.ImageSegmenterOptions(
             base_options=BaseOptions(model_asset_path=str(SELFIE_MODEL_PATH)),
@@ -38,8 +88,8 @@ class MediaPipeSegmenter:
         mask_small matches (sim_w,sim_h), both flipped vertically for GL UV convention.
         """
         with self.profiler.record("cam_read"):
-            ok, frame = self.cap.read()
-        if not ok:
+            frame = self._read_camera()
+        if frame is None:
             return None, None, None, 0.0
 
         with self.profiler.record("cam_flip"):
@@ -79,7 +129,7 @@ class MediaPipeSegmenter:
         self.segmenter.close()
 
 
-class YOLOSegmenter:
+class YOLOSegmenter(CameraReader):
     def __init__(
         self,
         camera_index: int,
@@ -92,12 +142,8 @@ class YOLOSegmenter:
         mirror: bool = True,
     ):
         self.profiler = get_profiler()
-        self.cap = cv2.VideoCapture(camera_index)
+        self._init_camera(camera_index, width, height)
         self.mirror = mirror
-        if not self.cap.isOpened():
-            raise RuntimeError("Cannot open webcam")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         self.model = YOLO(model_name)
         self.seg_w = seg_w
@@ -125,8 +171,8 @@ class YOLOSegmenter:
         mask_small matches (sim_w,sim_h), both flipped vertically for GL UV convention.
         """
         with self.profiler.record("cam_read"):
-            ok, frame = self.cap.read()
-        if not ok:
+            frame = self._read_camera()
+        if frame is None:
             return None, None, None, 0.0
 
         with self.profiler.record("cam_flip"):
@@ -191,3 +237,4 @@ class YOLOSegmenter:
 
     def release(self):
         self.cap.release()
+
