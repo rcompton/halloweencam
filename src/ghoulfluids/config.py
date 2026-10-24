@@ -84,8 +84,8 @@ class AppConfig:
     palette_on: int = 1  # Whether to use the color palettes (1 for on, 0 for off)
     palette_id: int = 5  # Initial palette index (0 to 5)
     palette_cycle: bool = True  # Whether to automatically cycle through palettes
-    palette_dwell: float = 20.0  # Seconds to stay on each palette
-    palette_fade: float = 8.0  # Seconds to fade between palettes
+    palette_dwell: float = 1.0  # Seconds to stay on each palette
+    palette_fade: float = 5.0  # Seconds to fade between palettes
 
     # --- Look ---
     glow_strength: float = 0.6  # Soft glow around bright smoke; 0 to disable
