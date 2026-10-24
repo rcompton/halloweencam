@@ -62,6 +62,9 @@ class AppConfig:
         True  # Use mask from the previous frame to calculate velocity
     )
     edge_dye_strength: float = 0.10  # How much dye to emit from the mask edges
+    edge_dye_cap: float = 1.0  # Edges stop adding dye where it's already this bright
+    edge_border: float = 0.03  # Ignore mask edges this close to the frame border (UV);
+    # YOLO masks stop a few pixels short of the frame, which made the walls spray smoke
 
     # --- Ambient (when no mask is detected) ---
     ambient_emitters: int = 50  # Number of drifting wisps to simulate

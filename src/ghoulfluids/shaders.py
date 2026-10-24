@@ -174,6 +174,11 @@ uniform float edge_thresh;
 uniform float amp_normal;
 uniform float amp_tangent;
 uniform int   use_temporal;
+uniform float border;  // UV band at the frame edges where mask edges are ignored
+float border_fade(vec2 p){
+    vec2 e = min(p, 1.0 - p);
+    return smoothstep(0.0, border, min(e.x, e.y));
+}
 void main(){
     float M  = texture(mask_curr, uv).r;
     float Mx = texture(mask_curr, uv + vec2(texel.x,0)).r - texture(mask_curr, uv - vec2(texel.x,0)).r;
@@ -192,6 +197,7 @@ void main(){
         }
         vec2 add = amp_normal*n*growth + amp_tangent*t*growth; // w/ tangent
         add *= smoothstep(edge_thresh, edge_thresh*3.0, gmag);
+        add *= border_fade(uv);
         v += dt * add;
     }
     fragColor = vec4(v,0,1);
@@ -207,12 +213,17 @@ uniform vec2 texel;
 uniform float edge_thresh;
 uniform vec3 edge_color;
 uniform float strength;
+uniform float border;   // UV band at the frame edges where mask edges are ignored
+uniform float dye_cap;  // outline stops adding dye once the dye here is this bright
 void main(){
     float Mx = texture(mask_curr, uv + vec2(texel.x,0)).r - texture(mask_curr, uv - vec2(texel.x,0)).r;
     float My = texture(mask_curr, uv + vec2(0,texel.y)).r - texture(mask_curr, uv - vec2(0,texel.y)).r;
     float gmag = length(0.5*vec2(Mx,My));
     vec3 base = texture(dye_in, uv).rgb;
     float k = smoothstep(edge_thresh, edge_thresh*3.0, gmag);
+    vec2 e = min(uv, 1.0 - uv);
+    k *= smoothstep(0.0, border, min(e.x, e.y));
+    k *= clamp(1.0 - dot(base, vec3(0.299, 0.587, 0.114)) / dye_cap, 0.0, 1.0);
     fragColor = vec4(base + strength*k*edge_color, 1.0);
 }
 """

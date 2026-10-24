@@ -158,6 +158,9 @@ class FluidSim:
         self.prog_maskD["texel"].value = (1.0 / self.dye_w, 1.0 / self.dye_h)
         self.prog_maskD["edge_thresh"].value = self.cfg.edge_thresh
         self.prog_maskD["edge_color"].value = (1.0, 0.45, 0.1)
+        self.prog_maskD["border"].value = self.cfg.edge_border
+        self.prog_maskD["dye_cap"].value = self.cfg.edge_dye_cap
+        self.prog_maskF["border"].value = self.cfg.edge_border
 
         # seed a puff
         self.fbo_dye_b.use()

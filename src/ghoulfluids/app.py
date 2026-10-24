@@ -28,11 +28,28 @@ def save_snapshot(ctx, cfg, logger):
 
     out_dir = os.path.expanduser("~/halloweencam_shots")
     os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, time.strftime("%Y%m%d-%H%M%S.jpg"))
+    now = time.time()
+    stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(now))
+    path = os.path.join(out_dir, f"{stamp}.{int(now * 1000) % 1000:03d}.jpg")
     raw = ctx.screen.read(viewport=(0, 0, cfg.width, cfg.height), components=3)
     img = np.frombuffer(raw, np.uint8).reshape(cfg.height, cfg.width, 3)
     cv2.imwrite(path, cv2.cvtColor(img[::-1], cv2.COLOR_RGB2BGR))
     logger.info(f"Saved snapshot {path}")
+
+
+def save_mask_recording(recorded, logger):
+    out_dir = os.path.expanduser("~/halloweencam_shots")
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, time.strftime("masks-%Y%m%d-%H%M%S.npz"))
+    shape = next((m.shape for *_, m in recorded if m is not None), (1, 1))
+    np.savez_compressed(
+        path,
+        t=np.array([r[0] for r in recorded]) - recorded[0][0],
+        have_mask=np.array([r[1] for r in recorded]),
+        area=np.array([r[2] for r in recorded]),
+        masks=np.stack([m if m is not None else np.zeros(shape, np.uint8) for *_, m in recorded]),
+    )
+    logger.info(f"Saved mask recording {path} ({len(recorded)} frames)")
 
 
 def start_watchdog(logger, timeout: float = WATCHDOG_SECS):
@@ -265,6 +282,12 @@ def main(argv=None):
     snapshot_requested = threading.Event()
     if hasattr(signal, "SIGUSR1"):
         signal.signal(signal.SIGUSR1, lambda *_: snapshot_requested.set())
+    # `kill -USR2 <pid>` records the next 10s of segmentation masks (for replaying
+    # real input through the sim offline).
+    mask_recording = threading.Event()
+    recorded = []
+    if hasattr(signal, "SIGUSR2"):
+        signal.signal(signal.SIGUSR2, lambda *_: mask_recording.set())
     try:
         while not glfw.window_should_close(win):
             watchdog_tick()
@@ -334,6 +357,20 @@ def main(argv=None):
                     if mask_small is not None and area > cfg.mask_min_area:
                         sim.upload_mask(mask_small)
                         have_mask = True
+
+                if mask_recording.is_set():
+                    recorded.append(
+                        (
+                            now,
+                            have_mask,
+                            area,
+                            None if mask_small is None else (mask_small * 255).astype(np.uint8),
+                        )
+                    )
+                    if now - recorded[0][0] >= 10.0:
+                        mask_recording.clear()
+                        save_mask_recording(recorded, logger)
+                        recorded = []
 
                 if running:
                     # --- Ambient emitters ---
