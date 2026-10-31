@@ -81,6 +81,9 @@ while true; do
     log "Using camera $CAM (index $INDEX)"
     v4l2-ctl -d "$CAM" --set-fmt-video=width=${WIDTH},height=${HEIGHT},pixelformat=MJPG \
         || log "WARNING: could not set MJPEG format"
+    # In the dark the Kiyo halves its frame rate to expose longer; keep 30 FPS.
+    v4l2-ctl -d "$CAM" -c exposure_dynamic_framerate=0 \
+        || log "WARNING: could not fix camera frame rate"
 
     "$PROJECT_DIR/venv/bin/ghoulfluids" \
         --fullscreen --segmenter=yolo \
