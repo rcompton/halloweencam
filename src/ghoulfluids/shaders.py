@@ -427,6 +427,74 @@ void main(){
 }
 """
 
+# ---- Embers ----
+# Agents: rg = position (UV), ba = velocity (UV per second).
+FS_EMBER_AGENTS = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D agents;
+uniform sampler2D mask_mips;
+uniform vec2 texel;
+uniform float t;
+uniform float dt;
+uniform float flow;    // speed of the swirling current (UV/s)
+uniform float rise;    // upward drift (UV/s)
+uniform float push;    // how hard people shove sparks away
+uniform float inertia; // 1 = follow the current exactly (even spread); lower bunches sparks into ribbons
+uniform float aspect;
+uniform float seed;
+
+float rand(float k){
+    uint h = uint(gl_FragCoord.x) * 1973u + uint(gl_FragCoord.y) * 9277u + uint((seed + k) * 1000.0) * 26699u;
+    h = (h ^ (h >> 16)) * 0x7feb352du;
+    h = (h ^ (h >> 15)) * 0x846ca68bu;
+    h ^= h >> 16;
+    return float(h) / 4294967295.0;
+}
+
+// Stream function: a few drifting sine layers. Its curl is a swirling, divergence-free flow.
+float psi(vec2 p){
+    p.x *= aspect;
+    return sin(p.x * 3.1 + t * 0.31) * cos(p.y * 2.7 - t * 0.23)
+         + 0.5 * sin(p.x * 7.3 - p.y * 5.1 + t * 0.7)
+         + 0.25 * cos(p.x * 13.0 + p.y * 11.0 - t * 1.1);
+}
+
+vec2 curl(vec2 p){
+    const float e = 0.002;
+    return vec2(psi(p + vec2(0.0, e)) - psi(p - vec2(0.0, e)),
+                psi(p - vec2(e, 0.0)) - psi(p + vec2(e, 0.0))) / (2.0 * e);
+}
+
+float m(vec2 p, float lod){ return textureLod(mask_mips, p, lod).r; }
+
+void main(){
+    vec4 a = texelFetch(agents, ivec2(gl_FragCoord.xy), 0);
+    vec2 pos = a.xy, vel = a.zw;
+    vec2 target = curl(pos) * flow * 0.15 + vec2(0.0, rise);
+    if (push > 0.0){
+        // shove down the mask's slope at two scales: near the outline and from afar
+        vec2 g = vec2(0.0);
+        for (int i = 0; i < 2; i++){
+            float lod = i == 0 ? 2.0 : 4.0;
+            vec2 d = texel * exp2(lod) * 1.5;
+            g += vec2(m(pos + vec2(d.x, 0.0), lod) - m(pos - vec2(d.x, 0.0), lod),
+                      m(pos + vec2(0.0, d.y), lod) - m(pos - vec2(0.0, d.y), lod));
+        }
+        target -= push * g * vec2(1.0 / aspect, 1.0);
+        target *= 1.0 + 3.0 * m(pos, 1.0);  // caught inside someone: get out fast
+    }
+    vel = mix(vel, target, inertia);
+    pos += vel * dt;
+    // off screen, or now and then at random: respawn somewhere new
+    if (any(lessThan(pos, vec2(0.0))) || any(greaterThan(pos, vec2(1.0))) || rand(0.0) < 0.004){
+        pos = vec2(rand(1.0), rand(2.0));
+        vel = vec2(0.0);
+    }
+    fragColor = vec4(pos, vel);
+}
+"""
+
 FS_COPY_R = """
 #version 330
 in vec2 uv; out vec4 fragColor;

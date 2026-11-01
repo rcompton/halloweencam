@@ -21,23 +21,28 @@ from .fluid import make_tex, fullscreen_quad
 
 
 class SlimeSim:
+    AGENT_SHADER = "FS_SLIME_AGENTS"
+    PREFIX = "slime_"  # config keys for this mode
+
     def __init__(self, ctx: moderngl.Context, cfg, sim_w: int, sim_h: int, masks, seed=3):
         self.ctx = ctx
         self.cfg = cfg
         # The trail can be finer than the fluid grid: thin veins read better at 4K.
-        k = max(1.0, cfg.slime_scale)
+        k = max(1.0, self.opt("scale"))
         self.w, self.h = int(sim_w * k), int(sim_h * k)
         sim_w, sim_h = self.w, self.h
         self.mask_curr = masks[0]
         self.rng = np.random.default_rng(seed)
         self.t = 0.0
 
-        n = max(1, int(cfg.slime_agents))
+        n = max(1, int(self.opt("agents")))
         self.agent_w = int(math.ceil(math.sqrt(n)))
         self.agent_h = int(math.ceil(n / self.agent_w))
         self.n_agents = self.agent_w * self.agent_h
 
-        self.prog_agents = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_SLIME_AGENTS)
+        self.prog_agents = ctx.program(
+            vertex_shader=S.VS, fragment_shader=getattr(S, self.AGENT_SHADER)
+        )
         self.prog_deposit = ctx.program(
             vertex_shader=S.VS_SLIME_DEPOSIT, fragment_shader=S.FS_SLIME_DEPOSIT
         )
@@ -72,9 +77,21 @@ class SlimeSim:
         self.prog_deposit["agent_w"].value = self.agent_w
         self.reset()
 
+    def opt(self, name):
+        return getattr(self.cfg, self.PREFIX + name)
+
     @property
     def output(self):
         return self.trail_a
+
+    def set_agent_uniforms(self, p, have_mask: bool):
+        cfg = self.cfg
+        p["sensor_angle"].value = math.radians(cfg.slime_sensor_angle)
+        p["sensor_dist"].value = cfg.slime_sensor_dist
+        p["turn"].value = math.radians(cfg.slime_turn_angle)
+        p["speed"].value = cfg.slime_speed
+        p["food"].value = cfg.slime_food if have_mask else 0.0
+        p["outline"].value = cfg.slime_outline
 
     def reset(self):
         """Scatter the agents over the whole screen, so slime is near whoever walks up."""
@@ -88,21 +105,17 @@ class SlimeSim:
             self.ctx.clear(0, 0, 0, 0)
 
     def step(self, dt: float, have_mask: bool):
-        cfg = self.cfg
         self.t += dt
-        steps = max(1, int(cfg.slime_substeps))
-        decay = math.exp(-dt / steps / max(1e-3, cfg.slime_decay_secs))
+        steps = max(1, int(self.opt("substeps")))
+        decay = math.exp(-dt / steps / max(1e-3, self.opt("decay_secs")))
         p = self.prog_agents
-        p["sensor_angle"].value = math.radians(cfg.slime_sensor_angle)
-        p["sensor_dist"].value = cfg.slime_sensor_dist
-        p["turn"].value = math.radians(cfg.slime_turn_angle)
-        p["speed"].value = cfg.slime_speed
-        p["food"].value = cfg.slime_food if have_mask else 0.0
-        p["outline"].value = cfg.slime_outline
-        self.prog_deposit["amount"].value = cfg.slime_deposit
-        self.prog_deposit["feed_glow"].value = cfg.slime_feed_glow if have_mask else 0.0
+        self.set_agent_uniforms(p, have_mask)
+        if "dt" in p:
+            p["dt"].value = dt / steps
+        self.prog_deposit["amount"].value = self.opt("deposit")
+        self.prog_deposit["feed_glow"].value = self.opt("feed_glow") if have_mask else 0.0
         self.prog_diffuse["decay"].value = decay
-        self.prog_diffuse["diffuse"].value = cfg.slime_diffuse
+        self.prog_diffuse["diffuse"].value = self.opt("diffuse")
         if have_mask:
             self.fbo_mask_mips.use()
             self.mask_curr.use(location=0)
@@ -116,10 +129,9 @@ class SlimeSim:
             self.trail_a.use(location=1)
             self.mask_curr.use(location=2)
             self.mask_mips.use(location=3)
-            p["agents"].value = 0
-            p["trail"].value = 1
-            p["mask"].value = 2
-            p["mask_mips"].value = 3
+            for name, unit in (("agents", 0), ("trail", 1), ("mask", 2), ("mask_mips", 3)):
+                if name in p:
+                    p[name].value = unit
             p["seed"].value = (self.t * 61.7 + i * 7.3) % 1000.0
             self.vao_agents.render(moderngl.TRIANGLE_STRIP)
             self.agents_a, self.agents_b = self.agents_b, self.agents_a
@@ -143,6 +155,35 @@ class SlimeSim:
             self.ctx.blend_func = moderngl.ONE, moderngl.ONE
             self.vao_deposit.render(moderngl.POINTS, vertices=self.n_agents)
             self.ctx.disable(moderngl.BLEND)
+
+
+class EmberSim(SlimeSim):
+    """
+    Glowing sparks drifting on a swirling current. People push them aside, so
+    they stream around silhouettes and leave each person outlined in a dark gap.
+    Same machinery as the slime: agents in a texture, points into a fading trail.
+    """
+
+    AGENT_SHADER = "FS_EMBER_AGENTS"
+    PREFIX = "ember_"
+
+    def set_agent_uniforms(self, p, have_mask: bool):
+        cfg = self.cfg
+        p["t"].value = self.t
+        p["flow"].value = cfg.ember_flow
+        p["rise"].value = cfg.ember_rise
+        p["push"].value = cfg.ember_push if have_mask else 0.0
+        p["inertia"].value = cfg.ember_follow
+        p["aspect"].value = self.w / float(self.h)
+
+    def reset(self):
+        n = self.n_agents
+        agents = np.zeros((n, 4), np.float32)  # rg = position (UV), ba = velocity (UV/s)
+        agents[:, :2] = self.rng.random((n, 2))
+        self.agents_a.write(agents.tobytes())
+        for fbo in (self.fbo_trail_a, self.fbo_trail_b):
+            fbo.use()
+            self.ctx.clear(0, 0, 0, 0)
 
 
 class WaveSim:

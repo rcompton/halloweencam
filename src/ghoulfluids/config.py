@@ -109,7 +109,7 @@ class AppConfig:
     eyes_size: float = 0.05  # Eye width as a fraction of screen height (each pair varies 0.6-1.4x)
 
     # --- Modes (the display cycles through these) ---
-    modes: tuple = ("slime", "wave", "fluid")  # any of fluid, slime, wave
+    modes: tuple = ("slime", "embers", "wave", "fluid")  # any of fluid, slime, wave, embers
     mode_dwell: float = 60.0  # Seconds on each mode
     mode_fade: float = 4.0  # Seconds to crossfade to the next
 
@@ -127,6 +127,19 @@ class AppConfig:
     slime_food: float = 10.0  # How strongly people attract the slime; negative repels
     slime_outline: float = 40.0  # Extra pull toward people's outlines, so the slime traces them
     slime_feed_glow: float = 2.0  # Slime on a person glows this many times brighter (0 = same)
+
+    # --- Embers ---
+    ember_agents: int = 1_000_000  # Number of sparks
+    ember_scale: float = 2.0  # Trail grid size relative to the fluid grid
+    ember_substeps: int = 2  # Moves per frame
+    ember_flow: float = 1.0  # Speed of the swirling current
+    ember_rise: float = 0.03  # Upward drift (screen heights per second)
+    ember_push: float = 10.0  # How hard people shove the sparks away
+    ember_follow: float = 1.0  # 1 = sparks follow the current exactly (even spread); lower = ribbons
+    ember_deposit: float = 0.03  # Brightness each spark leaves per move
+    ember_decay_secs: float = 0.12  # Streak length (how fast trails fade)
+    ember_diffuse: float = 0.0  # Trail blur per move (0-1)
+    ember_feed_glow: float = 4.0  # Sparks brushing past people glow this much brighter
 
     # --- Ripples ---
     wave_substeps: int = 10  # Wave steps per frame (more = faster waves)

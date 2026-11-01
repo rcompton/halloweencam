@@ -17,7 +17,7 @@ from .config import AppConfig
 from .debug import DebugOverlay
 from .eyes import EyesSwarm
 from .fluid import FluidSim
-from .modes import ModeCycler, SlimeSim, WaveSim
+from .modes import EmberSim, ModeCycler, SlimeSim, WaveSim
 from .logging import get_logger, setup_logging
 from .profiler import get_profiler
 from .segmentation import MediaPipeSegmenter, YOLOSegmenter
@@ -159,7 +159,7 @@ def main(argv=None):
         "--mode",
         type=str,
         action="append",
-        choices=["fluid", "slime", "wave"],
+        choices=["fluid", "slime", "wave", "embers"],
         default=None,
         help="Show only this mode (repeat to cycle through several). Default: from config.",
     )
@@ -266,6 +266,8 @@ def main(argv=None):
         others["slime"] = SlimeSim(ctx, cfg, sim.sim_w, sim.sim_h, masks)
     if "wave" in cfg.modes:
         others["wave"] = WaveSim(ctx, cfg, sim.sim_w, sim.sim_h, masks)
+    if "embers" in cfg.modes:
+        others["embers"] = EmberSim(ctx, cfg, sim.sim_w, sim.sim_h, masks)
     cycler = ModeCycler(cfg.modes, cfg.mode_dwell, cfg.mode_fade)
     logger.info(f"Modes: {', '.join(cycler.modes)} ({cfg.mode_dwell:.0f}s each)")
 

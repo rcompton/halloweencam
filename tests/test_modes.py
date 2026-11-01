@@ -3,7 +3,7 @@ import pytest
 
 from ghoulfluids.config import AppConfig
 from ghoulfluids.fluid import FluidSim
-from ghoulfluids.modes import ModeCycler, SlimeSim, WaveSim
+from ghoulfluids.modes import EmberSim, ModeCycler, SlimeSim, WaveSim
 
 
 @pytest.fixture(scope="module")
@@ -47,6 +47,25 @@ def test_slime_gathers_on_people(ctx, mode_cfg):
     for _ in range(90):
         slime.step(1 / 30, True)
     assert frac_on_person() > 2 * before
+
+
+def test_embers_are_pushed_off_people(ctx, mode_cfg):
+    sim, embers = make(ctx, mode_cfg, EmberSim)
+    m = np.zeros((sim.sim_h, sim.sim_w), np.float32)
+    x0, x1, y0, y1 = sim.sim_w * 3 // 8, sim.sim_w * 5 // 8, sim.sim_h // 4, sim.sim_h * 3 // 4
+    m[y0:y1, x0:x1] = 1.0
+    sim.upload_mask(m)
+
+    def frac_on_person():
+        a = read(embers.agents_a, 4, np.float32).reshape(-1, 4)
+        x, y = a[:, 0] * sim.sim_w, a[:, 1] * sim.sim_h
+        return ((x > x0) & (x < x1) & (y > y0) & (y < y1)).mean()
+
+    before = frac_on_person()
+    for _ in range(60):
+        embers.step(1 / 30, True)
+    assert frac_on_person() < 0.5 * before
+    assert np.isfinite(read(embers.output, 4, np.float16)).all()
 
 
 def test_wave_drop_spreads_and_settles(ctx, mode_cfg):
