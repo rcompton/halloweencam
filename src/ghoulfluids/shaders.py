@@ -246,6 +246,8 @@ FS_SHOW = """
 #version 330
 in vec2 uv; out vec4 fragColor;
 uniform sampler2D dye;
+uniform sampler2D dye2;     // the next mode's output while crossfading between modes
+uniform float mode_mix;     // 0 = all dye, 1 = all dye2
 uniform int palette_on;
 uniform int palette_id;   // current palette (0..N-1)
 uniform int palette_id2;  // next palette for crossfade
@@ -271,6 +273,12 @@ vec3 eye(vec2 p, float open_){
     vec3 col = inside * iris * (1.0 - 0.9 * pupil);
     float glow = exp(-3.0 * dot(p * vec2(0.6, 2.0), p * vec2(0.6, 2.0))) * open_;
     return col + glow * vec3(0.9, 0.08, 0.02) * 0.6;
+}
+
+vec3 field(vec2 p){
+    vec3 a = texture(dye, p).rgb;
+    if (mode_mix <= 0.0) return a;
+    return mix(a, texture(dye2, p).rgb, mode_mix);
 }
 
 // 3-stop gradient helper
@@ -305,7 +313,7 @@ vec3 pick_palette(int id, float t){
 }
 
 void main(){
-    vec3 dye_rgb = texture(dye, uv).rgb;
+    vec3 dye_rgb = field(uv);
     if (palette_on == 0){
         fragColor = vec4(dye_rgb, 1.0);
         return;
@@ -324,8 +332,8 @@ void main(){
         for (int i = 0; i < 12; i++){
             float ang = 6.2831853 * (float(i) + 0.5) / 12.0;
             vec2 dir = vec2(cos(ang) / aspect, sin(ang));
-            gl += dot(texture(dye, uv + dir * glow_radius * 0.4).rgb, LUMA);
-            gl += dot(texture(dye, uv + dir * glow_radius).rgb, LUMA);
+            gl += dot(field(uv + dir * glow_radius * 0.4), LUMA);
+            gl += dot(field(uv + dir * glow_radius), LUMA);
         }
         gl = 1.0 - exp(-2.3 * gl / 24.0);
         vec3 gc = mix(pick_palette(palette_id, gl), pick_palette(palette_id2, gl), pm);
@@ -357,6 +365,179 @@ void main(){
         outc *= 1.0 - vignette * smoothstep(0.35, 1.25, length(d));
     }
     fragColor = vec4(outc, 1.0);
+}
+"""
+
+# ---- Slime mold (physarum) ----
+# Agents live in a texture: rg = position (UV), b = heading (radians, pixel space).
+FS_SLIME_AGENTS = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D agents;
+uniform sampler2D trail;
+uniform sampler2D mask;
+uniform sampler2D mask_mips;  // the mask again, mipmapped: people smelled from afar
+uniform vec2 texel;
+uniform float sensor_angle;
+uniform float sensor_dist;  // pixels
+uniform float turn;
+uniform float speed;        // pixels per step
+uniform float food;         // how strongly people attract the slime
+uniform float seed;
+
+float rand(){
+    uint h = uint(gl_FragCoord.x) * 1973u + uint(gl_FragCoord.y) * 9277u + uint(seed * 1000.0) * 26699u;
+    h = (h ^ (h >> 16)) * 0x7feb352du;
+    h = (h ^ (h >> 15)) * 0x846ca68bu;
+    h ^= h >> 16;
+    return float(h) / 4294967295.0;
+}
+
+float sense(vec2 pos, float a){
+    vec2 q = pos + vec2(cos(a), sin(a)) * texel * sensor_dist;
+    float smell = texture(mask, q).r + 3.0 * textureLod(mask_mips, q, 3.0).r + 6.0 * textureLod(mask_mips, q, 5.0).r;
+    return texture(trail, q).r + food * smell;
+}
+
+void main(){
+    vec4 ag = texelFetch(agents, ivec2(gl_FragCoord.xy), 0);
+    vec2 pos = ag.xy;
+    float a = ag.z;
+    float r = rand();
+    float F = sense(pos, a);
+    float L = sense(pos, a + sensor_angle);
+    float R = sense(pos, a - sensor_angle);
+    if (F >= L && F >= R) {
+    } else if (F < L && F < R) {
+        a += (r < 0.5 ? turn : -turn);
+    } else if (L > R) {
+        a += turn;
+    } else {
+        a -= turn;
+    }
+    pos += vec2(cos(a), sin(a)) * texel * speed;
+    if (pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0){
+        pos = clamp(pos, vec2(0.0), vec2(1.0));
+        a = r * 6.2831853;  // bounce off in a random direction
+    }
+    fragColor = vec4(pos, mod(a, 6.2831853), 0.0);
+}
+"""
+
+FS_COPY_R = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D src;
+void main(){ fragColor = vec4(texture(src, uv).r); }
+"""
+
+# One point per agent, drawn with additive blending into the trail.
+VS_SLIME_DEPOSIT = """
+#version 330
+uniform sampler2D agents;
+uniform int agent_w;
+void main(){
+    vec2 p = texelFetch(agents, ivec2(gl_VertexID % agent_w, gl_VertexID / agent_w), 0).xy;
+    gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}
+"""
+
+FS_SLIME_DEPOSIT = """
+#version 330
+out vec4 fragColor;
+uniform float amount;
+void main(){ fragColor = vec4(amount); }
+"""
+
+FS_SLIME_DIFFUSE = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D trail;
+uniform vec2 texel;
+uniform float decay;    // per step
+uniform float diffuse;  // 0..1 blend toward the 3x3 blur
+void main(){
+    float c = texture(trail, uv).r;
+    float s = 0.0;
+    for (int y = -1; y <= 1; y++)
+        for (int x = -1; x <= 1; x++)
+            s += texture(trail, uv + vec2(x, y) * texel).r;
+    fragColor = vec4(mix(c, s / 9.0, diffuse) * decay);
+}
+"""
+
+# ---- Ripples (2D wave equation) ----
+# field: r = height now, g = height one step ago.
+FS_WAVE_STEP = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D field;
+uniform sampler2D mask_curr;
+uniform sampler2D mask_prev;
+uniform vec2 texel;
+uniform float c2;         // (wave speed)^2 in pixels per step; < 0.5 to stay stable
+uniform float damp;       // per step, applied to the surface's velocity
+uniform int have_mask;
+uniform float move_amp;   // pushes the water where someone moves
+uniform float pulse_amp;  // outlines throb with this force
+uniform float pulse;      // -1..1, the outline's current phase
+
+// Mask blurred over a few pixels: hard, jittery mask edges make grainy noise.
+float soft(sampler2D m){
+    float s = texture(m, uv).r;
+    for (int i = 0; i < 8; i++){
+        float a = 0.785398 * float(i);
+        s += texture(m, uv + vec2(cos(a), sin(a)) * texel * 4.0).r;
+    }
+    return s / 9.0;
+}
+
+void main(){
+    vec2 f = texture(field, uv).rg;
+    float h = f.r, hp = f.g;
+    float n4 = texture(field, uv - vec2(texel.x, 0.0)).r + texture(field, uv + vec2(texel.x, 0.0)).r
+             + texture(field, uv - vec2(0.0, texel.y)).r + texture(field, uv + vec2(0.0, texel.y)).r;
+    float hn = h + (h - hp) * damp + c2 * (n4 - 4.0 * h);
+    hn = mix(hn, n4 * 0.25, 0.005);  // a little viscosity to keep pixel-scale ripples down
+    if (have_mask == 1){
+        float m = soft(mask_curr);
+        float edge = clamp(4.0 * m * (1.0 - m), 0.0, 1.0);
+        hn += move_amp * (m - soft(mask_prev));       // moving pushes water ahead of you
+        hn += pulse_amp * pulse * edge;               // outlines throb out rings
+        hn *= 1.0 - 0.3 * smoothstep(0.6, 0.95, m);   // calm inside people
+    }
+    fragColor = vec4(clamp(hn * 0.9995, -4.0, 4.0), h, 0.0, 0.0);
+}
+"""
+
+FS_WAVE_DROP = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D field;
+uniform vec2 point;
+uniform float amount;
+uniform float radius;
+uniform float aspect;
+void main(){
+    vec2 d = (uv - point) * vec2(aspect, 1.0);
+    float b = amount * exp(-dot(d, d) / (radius * radius));
+    fragColor = texture(field, uv) + vec4(b, b, 0.0, 0.0);  // raise both: no initial velocity
+}
+"""
+
+FS_WAVE_SHADE = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D field;
+uniform vec2 texel;
+uniform float gain;
+void main(){
+    float h = texture(field, uv).r;
+    vec2 g = vec2(
+        texture(field, uv + vec2(texel.x, 0.0)).r - texture(field, uv - vec2(texel.x, 0.0)).r,
+        texture(field, uv + vec2(0.0, texel.y)).r - texture(field, uv - vec2(0.0, texel.y)).r);
+    float v = gain * (max(h, 0.0) + 1.5 * length(g));  // bright crests and steep slopes
+    fragColor = vec4(vec3(v), 1.0);
 }
 """
 

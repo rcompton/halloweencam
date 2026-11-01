@@ -107,3 +107,31 @@ class AppConfig:
     eyes_fade: float = 1.0  # Fade in/out seconds
     eyes_hold: float = 3.0  # Seconds fully visible (blinks happen here)
     eyes_size: float = 0.05  # Eye width as a fraction of screen height (each pair varies 0.6-1.4x)
+
+    # --- Modes (the display cycles through these) ---
+    modes: tuple = ("fluid", "slime", "wave")  # any of fluid, slime, wave
+    mode_dwell: float = 60.0  # Seconds on each mode
+    mode_fade: float = 4.0  # Seconds to crossfade to the next
+
+    # --- Slime mold ---
+    slime_agents: int = 300_000  # Number of slime agents
+    slime_substeps: int = 3  # Agent moves per frame
+    slime_speed: float = 1.5  # Pixels per move
+    slime_sensor_angle: float = 45.0  # Degrees between the forward and side sensors
+    slime_sensor_dist: float = 15.0  # Pixels ahead the agents smell
+    slime_turn_angle: float = 22.0  # Degrees turned toward the strongest scent
+    slime_deposit: float = 0.01  # Scent each agent leaves per move
+    slime_decay_secs: float = 0.3  # Trail fades to ~37% in this long
+    slime_diffuse: float = 0.1  # How much the trail spreads each move (0-1)
+    slime_food: float = 3.0  # How strongly people attract the slime; negative repels
+
+    # --- Ripples ---
+    wave_substeps: int = 10  # Wave steps per frame (more = faster waves)
+    wave_speed: float = 0.45  # Squared wave speed per step; keep below 0.5
+    wave_damp_steps: float = 1500.0  # Steps for a wave to lose ~63% of its motion
+    wave_pulse_amp: float = 0.03  # How hard silhouettes throb out rings
+    wave_pulse_hz: float = 1.5  # Rings per second from silhouettes
+    wave_move_amp: float = 0.2  # How much moving pushes the water
+    wave_drop_interval: float = 0.5  # Average seconds between raindrops when nobody's there
+    wave_drop_amp: float = 4.0  # Raindrop height
+    wave_gain: float = 2.5  # Brightness of the ripples

@@ -17,6 +17,7 @@ from .config import AppConfig
 from .debug import DebugOverlay
 from .eyes import EyesSwarm
 from .fluid import FluidSim
+from .modes import ModeCycler, SlimeSim, WaveSim
 from .logging import get_logger, setup_logging
 from .profiler import get_profiler
 from .segmentation import MediaPipeSegmenter, YOLOSegmenter
@@ -154,6 +155,14 @@ def main(argv=None):
         default=None,
         help="How to apply forces from the mask ('edges' or 'full'). Default: from config.",
     )
+    p.add_argument(
+        "--mode",
+        type=str,
+        action="append",
+        choices=["fluid", "slime", "wave"],
+        default=None,
+        help="Show only this mode (repeat to cycle through several). Default: from config.",
+    )
     p.set_defaults(debug=False)
     args = p.parse_args(argv)
 
@@ -182,6 +191,8 @@ def main(argv=None):
         cfg.yolo_model = args.yolo_model
     if args.yolo_device is not None:
         cfg.yolo_device = args.yolo_device
+    if args.mode:
+        cfg.modes = tuple(args.mode)
 
     # --- logging ---
     setup_logging(cfg.log_level, cfg.log_file)
@@ -249,6 +260,18 @@ def main(argv=None):
     else:
         raise ValueError(f"Unknown segmenter: {cfg.segmenter}")
 
+    masks = (sim.mask_curr, sim.mask_prev)
+    others = {}
+    if "slime" in cfg.modes:
+        others["slime"] = SlimeSim(ctx, cfg, sim.sim_w, sim.sim_h, masks)
+    if "wave" in cfg.modes:
+        others["wave"] = WaveSim(ctx, cfg, sim.sim_w, sim.sim_h, masks)
+    cycler = ModeCycler(cfg.modes, cfg.mode_dwell, cfg.mode_fade)
+    logger.info(f"Modes: {', '.join(cycler.modes)} ({cfg.mode_dwell:.0f}s each)")
+
+    def mode_output(name):
+        return sim.dye_a if name == "fluid" else others[name].output
+
     ambient = AmbientController(cfg, seed=42)
     eyes = EyesSwarm(cfg)
 
@@ -273,7 +296,7 @@ def main(argv=None):
     time_since_log = 0.0
 
     logger.info(
-        "SPACE pause  C clear  P palette  V toggle split/fullscreen  D toggle debug  ESC quit"
+        "SPACE pause  C clear  P palette  M next mode  V toggle split/fullscreen  D toggle debug  ESC quit"
     )
 
     profiler = get_profiler()
@@ -325,6 +348,9 @@ def main(argv=None):
                 if glfw.get_key(win, glfw.KEY_P) == glfw.PRESS:
                     cfg.palette_on = 1 - cfg.palette_on
                     time.sleep(0.12)
+                if glfw.get_key(win, glfw.KEY_M) == glfw.PRESS:
+                    cycler.skip()
+                    time.sleep(0.12)
                 if glfw.get_key(win, glfw.KEY_V) == glfw.PRESS:
                     split_view = not split_view
                     time.sleep(0.12)
@@ -375,9 +401,19 @@ def main(argv=None):
                         recorded = []
 
                 if running:
+                    # --- Mode cycling ---
+                    # Only the modes on screen run; a mode starts fresh as it fades in.
+                    was_fading = cycler.t > cycler.dwell
+                    mode, upcoming, mode_mix = cycler.step(sim_dt)
+                    if mode_mix > 0.0 and not was_fading and upcoming in others:
+                        others[upcoming].reset()
+                    if mode_mix == 0.0 and was_fading:
+                        logger.info(f"Mode: {mode}")
+                    showing = {mode, upcoming} if mode_mix > 0.0 else {mode}
+
                     # --- Ambient emitters ---
                     # Drifting wisps keep it varied; weaker while someone is in front.
-                    if cfg.ambient_emitters > 0:
+                    if cfg.ambient_emitters > 0 and "fluid" in showing:
                         if not have_mask:
                             ambient.step(sim_dt, sim)
                         elif cfg.ambient_with_person > 0:
@@ -417,10 +453,16 @@ def main(argv=None):
                     # --- Simulation step ---
                     # This is where all the fluid magic happens.
                     with profiler.record("simulation"):
-                        sim.set_crowd(area if have_mask else 0.0)
-                        sim.step(sim_dt, have_mask)
-                        sim.update_ghost(sim_dt, have_mask)
+                        if "fluid" in showing:
+                            sim.set_crowd(area if have_mask else 0.0)
+                            sim.step(sim_dt, have_mask)
+                            sim.update_ghost(sim_dt, have_mask)
+                        for name in showing - {"fluid"}:
+                            others[name].step(sim_dt, have_mask)
                     sim.set_eyes(eyes.step(sim_dt, have_mask))
+                    sim.set_show_source(
+                        mode_output(mode), mode_output(upcoming), mode_mix
+                    )
 
                 # --- Render to screen ---
                 # All simulation work is done in offscreen framebuffers.

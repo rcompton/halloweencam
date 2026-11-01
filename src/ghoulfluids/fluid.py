@@ -183,6 +183,9 @@ class FluidSim:
         self.last_mask_small = None
         self.crowd_k = 1.0  # edge force/dye multiplier from how much of the frame people fill
         self.eyes = []  # [(alpha, (u, v), openness, scale)] per pair, from EyesSwarm
+        self.show_src = None  # texture to display instead of the dye (another mode); None = dye
+        self.show_src2 = None  # crossfading toward this one
+        self.show_mix = 0.0
 
     # small helpers to swap ping-pong targets
     def swap_vel(self):
@@ -231,6 +234,12 @@ class FluidSim:
         self.vao_ghost.render(moderngl.TRIANGLE_STRIP)
         self.ghost_a, self.ghost_b = self.ghost_b, self.ghost_a
         self.fbo_ghost_a, self.fbo_ghost_b = self.fbo_ghost_b, self.fbo_ghost_a
+
+    def set_show_source(self, src=None, src2=None, mix: float = 0.0):
+        """Show another mode's output (None = this sim's dye), crossfading to src2."""
+        self.show_src = src
+        self.show_src2 = src2
+        self.show_mix = max(0.0, min(1.0, float(mix))) if src2 is not None else 0.0
 
     def set_palette_blend(self, a: int, b: int, mix: float):
         self.palette_a = int(a)
@@ -375,8 +384,11 @@ class FluidSim:
         else:
             self.ctx.viewport = (0, 0, self.cfg.width, self.cfg.height)
 
-        self.dye_a.use(location=0)
+        (self.show_src or self.dye_a).use(location=0)
+        (self.show_src2 or self.dye_a).use(location=3)
         self.prog_show["dye"].value = 0
+        self.prog_show["dye2"].value = 3
+        self.prog_show["mode_mix"].value = self.show_mix
         self.prog_show["palette_on"].value = self.cfg.palette_on
         self.prog_show["palette_id"].value = int(self.palette_a)
         self.prog_show["palette_id2"].value = int(self.palette_b)
