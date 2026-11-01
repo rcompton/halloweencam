@@ -5,9 +5,11 @@ from ghoulfluids.config import AppConfig
 @pytest.fixture(scope="module")
 def ctx():
     try:
-        return moderngl.create_standalone_context()
+        ctx = moderngl.create_standalone_context()
     except Exception as e:
         pytest.skip(f"Could not create headless GL context: {e}")
+    yield ctx
+    ctx.release()
 
 
 @pytest.fixture(scope="module")

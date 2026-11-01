@@ -112,10 +112,6 @@ class MediaPipeSegmenter(CameraReader):
         mask = np.squeeze(res.confidence_masks[0].numpy_view())
 
         with self.profiler.record("mask_resize"):
-            m_big = cv2.resize(
-                mask.astype(np.float32), (win_w, win_h), interpolation=cv2.INTER_LINEAR
-            )
-            area = float((m_big > 0.30).mean())
             m_small = cv2.flip(
                 cv2.resize(
                     mask.astype(np.float32),
@@ -124,6 +120,8 @@ class MediaPipeSegmenter(CameraReader):
                 ),
                 0,
             )
+            # fraction of the frame covered; same at sim size as at window size
+            area = float((m_small > 0.30).mean())
         return frame, cam_rgb_flipped, m_small, area
 
     def release(self):
@@ -220,13 +218,6 @@ class YOLOSegmenter(CameraReader):
             if combined_mask_native.max() == 0:
                 return frame, cam_rgb_flipped, None, 0.0
 
-        m_big = cv2.resize(
-            combined_mask_native.astype(np.float32),
-            (win_w, win_h),
-            interpolation=cv2.INTER_LINEAR,
-        )
-        area = float((m_big > 0.30).mean())
-
         m_small = cv2.flip(
             cv2.resize(
                 combined_mask_native.astype(np.float32),
@@ -235,6 +226,8 @@ class YOLOSegmenter(CameraReader):
             ),
             0,
         )
+        # fraction of the frame covered; same at sim size as at window size
+        area = float((m_small > 0.30).mean())
         return frame, cam_rgb_flipped, m_small, area
 
     def release(self):
