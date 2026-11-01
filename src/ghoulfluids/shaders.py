@@ -438,18 +438,23 @@ void main(){ fragColor = vec4(texture(src, uv).r); }
 VS_SLIME_DEPOSIT = """
 #version 330
 uniform sampler2D agents;
+uniform sampler2D mask_mips;
 uniform int agent_w;
+uniform float amount;
+uniform float feed_glow;  // slime on a person leaves this many times more trail
+out float strength;
 void main(){
     vec2 p = texelFetch(agents, ivec2(gl_VertexID % agent_w, gl_VertexID / agent_w), 0).xy;
+    strength = amount * (1.0 + feed_glow * textureLod(mask_mips, p, 1.0).r);
     gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
 }
 """
 
 FS_SLIME_DEPOSIT = """
 #version 330
+in float strength;
 out vec4 fragColor;
-uniform float amount;
-void main(){ fragColor = vec4(amount); }
+void main(){ fragColor = vec4(strength); }
 """
 
 FS_SLIME_DIFFUSE = """

@@ -117,15 +117,16 @@ class AppConfig:
     slime_agents: int = 1_000_000  # Number of slime agents
     slime_scale: float = 2.0  # Trail grid size relative to the fluid grid (2 = twice as fine)
     slime_substeps: int = 2  # Agent moves per frame
-    slime_speed: float = 8.0  # Pixels per move
+    slime_speed: float = 10.0  # Pixels per move
     slime_sensor_angle: float = 45.0  # Degrees between the forward and side sensors
     slime_sensor_dist: float = 24.0  # Pixels ahead the agents smell
     slime_turn_angle: float = 22.0  # Degrees turned toward the strongest scent
     slime_deposit: float = 0.02  # Scent each agent leaves per move
-    slime_decay_secs: float = 0.2  # Trail fades to ~37% in this long
+    slime_decay_secs: float = 0.15  # Trail fades to ~37% in this long
     slime_diffuse: float = 0.1  # How much the trail spreads each move (0-1)
-    slime_food: float = 6.0  # How strongly people attract the slime; negative repels
-    slime_outline: float = 20.0  # Extra pull toward people's outlines, so the slime traces them
+    slime_food: float = 10.0  # How strongly people attract the slime; negative repels
+    slime_outline: float = 40.0  # Extra pull toward people's outlines, so the slime traces them
+    slime_feed_glow: float = 2.0  # Slime on a person glows this many times brighter (0 = same)
 
     # --- Ripples ---
     wave_substeps: int = 10  # Wave steps per frame (more = faster waves)

@@ -100,6 +100,7 @@ class SlimeSim:
         p["food"].value = cfg.slime_food if have_mask else 0.0
         p["outline"].value = cfg.slime_outline
         self.prog_deposit["amount"].value = cfg.slime_deposit
+        self.prog_deposit["feed_glow"].value = cfg.slime_feed_glow if have_mask else 0.0
         self.prog_diffuse["decay"].value = decay
         self.prog_diffuse["diffuse"].value = cfg.slime_diffuse
         if have_mask:
@@ -135,7 +136,9 @@ class SlimeSim:
             # each agent adds scent where it stands
             self.fbo_trail_a.use()
             self.agents_a.use(location=0)
+            self.mask_mips.use(location=1)
             self.prog_deposit["agents"].value = 0
+            self.prog_deposit["mask_mips"].value = 1
             self.ctx.enable(moderngl.BLEND)
             self.ctx.blend_func = moderngl.ONE, moderngl.ONE
             self.vao_deposit.render(moderngl.POINTS, vertices=self.n_agents)
