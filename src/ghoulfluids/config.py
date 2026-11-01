@@ -109,7 +109,7 @@ class AppConfig:
     eyes_size: float = 0.05  # Eye width as a fraction of screen height (each pair varies 0.6-1.4x)
 
     # --- Modes (the display cycles through these) ---
-    modes: tuple = ("embers", "slime", "wave", "fluid")  # any of fluid, slime, wave, embers
+    modes: tuple = ("slime", "wave", "fluid")  # any of fluid, slime, wave, embers
     mode_dwell: float = 60.0  # Seconds on each mode
     mode_fade: float = 4.0  # Seconds to crossfade to the next
 
