@@ -383,6 +383,7 @@ uniform float sensor_dist;  // pixels
 uniform float turn;
 uniform float speed;        // pixels per step
 uniform float food;         // how strongly people attract the slime
+uniform float outline;      // extra pull toward people's outlines (vs. their insides)
 uniform float seed;
 
 float rand(){
@@ -395,7 +396,9 @@ float rand(){
 
 float sense(vec2 pos, float a){
     vec2 q = pos + vec2(cos(a), sin(a)) * texel * sensor_dist;
-    float smell = texture(mask, q).r + 3.0 * textureLod(mask_mips, q, 3.0).r + 6.0 * textureLod(mask_mips, q, 5.0).r;
+    float e = textureLod(mask_mips, q, 2.0).r;
+    float smell = texture(mask, q).r + 3.0 * textureLod(mask_mips, q, 3.0).r + 6.0 * textureLod(mask_mips, q, 5.0).r
+                + outline * 4.0 * e * (1.0 - e);
     return texture(trail, q).r + food * smell;
 }
 

@@ -24,7 +24,10 @@ class SlimeSim:
     def __init__(self, ctx: moderngl.Context, cfg, sim_w: int, sim_h: int, masks, seed=3):
         self.ctx = ctx
         self.cfg = cfg
-        self.w, self.h = sim_w, sim_h
+        # The trail can be finer than the fluid grid: thin veins read better at 4K.
+        k = max(1.0, cfg.slime_scale)
+        self.w, self.h = int(sim_w * k), int(sim_h * k)
+        sim_w, sim_h = self.w, self.h
         self.mask_curr = masks[0]
         self.rng = np.random.default_rng(seed)
         self.t = 0.0
@@ -74,15 +77,11 @@ class SlimeSim:
         return self.trail_a
 
     def reset(self):
-        """Scatter the agents in a disc facing outward, so it blooms from the middle."""
+        """Scatter the agents over the whole screen, so slime is near whoever walks up."""
         n = self.n_agents
-        r = 0.35 * np.sqrt(self.rng.random(n))
-        a = self.rng.random(n) * 2 * np.pi
-        aspect = self.cfg.width / float(self.cfg.height)
         agents = np.zeros((n, 4), np.float32)
-        agents[:, 0] = 0.5 + r * np.cos(a) / aspect
-        agents[:, 1] = 0.5 + r * np.sin(a)
-        agents[:, 2] = a  # heading, radians in pixel space
+        agents[:, :2] = self.rng.random((n, 2))
+        agents[:, 2] = self.rng.random(n) * 2 * np.pi  # heading, radians in pixel space
         self.agents_a.write(agents.tobytes())
         for fbo in (self.fbo_trail_a, self.fbo_trail_b):
             fbo.use()
@@ -99,6 +98,7 @@ class SlimeSim:
         p["turn"].value = math.radians(cfg.slime_turn_angle)
         p["speed"].value = cfg.slime_speed
         p["food"].value = cfg.slime_food if have_mask else 0.0
+        p["outline"].value = cfg.slime_outline
         self.prog_deposit["amount"].value = cfg.slime_deposit
         self.prog_diffuse["decay"].value = decay
         self.prog_diffuse["diffuse"].value = cfg.slime_diffuse
