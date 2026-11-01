@@ -25,6 +25,8 @@ def open_camera(camera_index: int, width: int, height: int):
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
         raise RuntimeError("Cannot open webcam")
+    # Uncompressed YUYV tops out around 15 FPS on the Kiyo; MJPEG does 30.
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     return cap
