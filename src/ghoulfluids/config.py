@@ -140,6 +140,7 @@ class AppConfig:
     ember_decay_secs: float = 0.12  # Streak length (how fast trails fade)
     ember_diffuse: float = 0.0  # Trail blur per move (0-1)
     ember_feed_glow: float = 4.0  # Sparks brushing past people glow this much brighter
+    ember_rim: float = 2.0  # Brightness of the fiery outline around people
 
     # --- Ripples ---
     wave_substeps: int = 10  # Wave steps per frame (more = faster waves)

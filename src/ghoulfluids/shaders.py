@@ -495,6 +495,23 @@ void main(){
 }
 """
 
+# Embers' trail plus a fiery rim along people's outlines; their insides stay dark.
+FS_EMBER_SHADE = """
+#version 330
+in vec2 uv; out vec4 fragColor;
+uniform sampler2D trail;
+uniform sampler2D mask_mips;
+uniform float rim;
+void main(){
+    float t = texture(trail, uv).r;
+    float m = textureLod(mask_mips, uv, 0.0).r;
+    float e = textureLod(mask_mips, uv, 3.0).r;
+    float band = clamp(4.0 * e * (1.0 - e), 0.0, 1.0);
+    float v = t * (1.0 - 0.9 * m) + rim * band * (0.4 + t);
+    fragColor = vec4(v);
+}
+"""
+
 FS_COPY_R = """
 #version 330
 in vec2 uv; out vec4 fragColor;

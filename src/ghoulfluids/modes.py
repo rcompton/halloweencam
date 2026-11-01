@@ -167,6 +167,29 @@ class EmberSim(SlimeSim):
     AGENT_SHADER = "FS_EMBER_AGENTS"
     PREFIX = "ember_"
 
+    def __init__(self, ctx, cfg, sim_w, sim_h, masks, seed=4):
+        super().__init__(ctx, cfg, sim_w, sim_h, masks, seed=seed)
+        self.prog_shade = ctx.program(vertex_shader=S.VS, fragment_shader=S.FS_EMBER_SHADE)
+        self.vao_shade = ctx.simple_vertex_array(self.prog_shade, self.vbo, "in_vert")
+        self.out = make_tex(ctx, (self.w, self.h), 4, dtype="f2")
+        self.fbo_out = ctx.framebuffer([self.out])
+        self.fbo_out.use()
+        ctx.clear(0, 0, 0, 0)
+
+    @property
+    def output(self):
+        return self.out
+
+    def step(self, dt: float, have_mask: bool):
+        super().step(dt, have_mask)
+        self.fbo_out.use()
+        self.trail_a.use(location=0)
+        self.mask_mips.use(location=1)
+        self.prog_shade["trail"].value = 0
+        self.prog_shade["mask_mips"].value = 1
+        self.prog_shade["rim"].value = self.cfg.ember_rim if have_mask else 0.0
+        self.vao_shade.render(moderngl.TRIANGLE_STRIP)
+
     def set_agent_uniforms(self, p, have_mask: bool):
         cfg = self.cfg
         p["t"].value = self.t
